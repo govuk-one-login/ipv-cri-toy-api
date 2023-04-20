@@ -1,0 +1,22 @@
+{
+  "name": "di-ipv-cri-toy-api",
+  "version": "1.0.0",
+  "description": "API for the toy credential issuer",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alphagov/di-ipv-cri-toy-api.git"
+  },
+  "author": "alphagov",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/alphagov/di-ipv-cri-toy-api/issues"
+  },
+  "homepage": "https://github.com/alphagov/di-ipv-cri-toy-api#readme",
+  "devDependencies": {
+    "typescript": "^5.0.4"
+  }
+}
