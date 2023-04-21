@@ -2,7 +2,7 @@
 set -e
 
 stack_name="$1"
-common_stack_name="${2:-toy-common-cri-api-local}"
+common_stack_name="${2:-common-cri-api}"
 secret_prefix="${3:-toy-cri-api}"
 
 if [ -z "$stack_name" ]
@@ -11,7 +11,6 @@ echo "😱 stack name expected as first argument, e.g. ./deploy toy-my-stackname
 exit 1
 fi
 
-./gradlew clean
 sam validate -t infrastructure/template.yaml
 sam build -t infrastructure/template.yaml
 sam deploy --stack-name "$stack_name" \
