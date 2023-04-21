@@ -3,720 +3,718 @@ Transform: "AWS::Serverless-2016-10-31"
 Description: "Digital Identity IPV CRI TOY API"
 
 Parameters:
-  CodeSigningEnabled:
-    Type: "String"
-    Default: "true"
-  CodeSigningConfigArn:
-    Type: String
-    Default: "none"
-    Description: >
-      The ARN of the Code Signing Config to use, provided by the deployment pipeline
-  Environment:
-    Description: "The environment type"
-    Type: "String"
-    AllowedValues:
-      - "dev"
-      - "build"
-      - "staging"
-      - "integration"
-      - "production"
-    ConstraintDescription: must be dev, build, staging, integration or production
-  PermissionsBoundary:
-    Description: "The ARN of the permissions boundary to apply when creating IAM roles"
-    Type: String
-    Default: "none"
-  SecretPrefix:
-    Type: String
-    Default: "none"
-    Description: Secrets name prefix
-  AuditEventNamePrefix:
-    Description: "The audit event name prefix"
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: "/common-cri-parameters/AuditEventNamePrefix"
-  CriIdentifier:
-    Description: "The unique credential issuer identifier"
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: "/common-cri-parameters/CriIdentifier"
-  CommonStackName:
-    Description: "The name of the stack containing the common CRI lambdas/infra"
-    Type: String
-    Default: "common-cri-api"
+    CodeSigningEnabled:
+        Type: "String"
+        Default: "true"
+    CodeSigningConfigArn:
+        Type: String
+        Default: "none"
+        Description: >
+            The ARN of the Code Signing Config to use, provided by the deployment pipeline
+    Environment:
+        Description: "The environment type"
+        Type: "String"
+        AllowedValues:
+            - "dev"
+            - "build"
+            - "staging"
+            - "integration"
+            - "production"
+        ConstraintDescription: must be dev, build, staging, integration or production
+    PermissionsBoundary:
+        Description: "The ARN of the permissions boundary to apply when creating IAM roles"
+        Type: String
+        Default: "none"
+    SecretPrefix:
+        Type: String
+        Default: "none"
+        Description: Secrets name prefix
+    AuditEventNamePrefix:
+        Description: "The audit event name prefix"
+        Type: AWS::SSM::Parameter::Value<String>
+        Default: "/common-cri-parameters/AuditEventNamePrefix"
+    CriIdentifier:
+        Description: "The unique credential issuer identifier"
+        Type: AWS::SSM::Parameter::Value<String>
+        Default: "/common-cri-parameters/CriIdentifier"
+    CommonStackName:
+        Description: "The name of the stack containing the common CRI lambdas/infra"
+        Type: String
+        Default: "common-cri-api"
 
 Conditions:
-  EnforceCodeSigning: !Equals
-    - !Ref  CodeSigningEnabled
-    - true
-  UseCodeSigningConfigArn:
-    Fn::Not:
-      - Fn::Equals:
-          - !Ref CodeSigningConfigArn
-          - "none"
-  IsStubEnvironment: !Or
-    - !Equals [ !Ref Environment, dev]
-    - !Equals [ !Ref Environment, build ]
-    - !Equals [ !Ref Environment, staging ]
-    - !Equals [ !Ref Environment, integration ]
-  IsProdLikeEnvironment: !Or
-    - !Equals [ !Ref Environment, staging ]
-    - !Equals [ !Ref Environment, integration ]
-    - !Equals [ !Ref Environment, production ]
-  IsProdEnvironment: !Equals
-    - !Ref Environment
-    - production
-  IsDevEnvironment: !Equals
-    - !Ref Environment
-    - dev
-  IsNotDevEnvironment: !Not
-    - Condition: IsDevEnvironment
-  UsePermissionsBoundary:
-    Fn::Not:
-      - Fn::Equals:
-          - !Ref PermissionsBoundary
-          - "none"
-  UseSecretPrefix:
-    Fn::Not:
-      - Fn::Equals:
-        - !Ref SecretPrefix
-        - "none"
+    EnforceCodeSigning: !Equals
+        - !Ref CodeSigningEnabled
+        - true
+    UseCodeSigningConfigArn:
+        Fn::Not:
+            - Fn::Equals:
+                  - !Ref CodeSigningConfigArn
+                  - "none"
+    IsStubEnvironment: !Or
+        - !Equals [!Ref Environment, dev]
+        - !Equals [!Ref Environment, build]
+        - !Equals [!Ref Environment, staging]
+        - !Equals [!Ref Environment, integration]
+    IsProdLikeEnvironment: !Or
+        - !Equals [!Ref Environment, staging]
+        - !Equals [!Ref Environment, integration]
+        - !Equals [!Ref Environment, production]
+    IsProdEnvironment: !Equals
+        - !Ref Environment
+        - production
+    IsDevEnvironment: !Equals
+        - !Ref Environment
+        - dev
+    IsNotDevEnvironment: !Not
+        - Condition: IsDevEnvironment
+    UsePermissionsBoundary:
+        Fn::Not:
+            - Fn::Equals:
+                  - !Ref PermissionsBoundary
+                  - "none"
+    UseSecretPrefix:
+        Fn::Not:
+            - Fn::Equals:
+                  - !Ref SecretPrefix
+                  - "none"
 
 Globals:
-  Function:
-    VpcConfig:
-      SecurityGroupIds:
-        - !ImportValue cri-vpc-AWSServicesEndpointSecurityGroupId
-      SubnetIds: [!ImportValue cri-vpc-PrivateSubnetIdA, !ImportValue cri-vpc-PrivateSubnetIdB]
-    PermissionsBoundary: !If
-      - UsePermissionsBoundary
-      - !Ref PermissionsBoundary
-      - !Ref AWS::NoValue
-    CodeSigningConfigArn: !If
-      - EnforceCodeSigning
-      - !Ref CodeSigningConfigArn
-      - !Ref AWS::NoValue
-    Timeout: 30 # seconds
-    Runtime: java11
-    AutoPublishAlias: live
-    Tracing: Active
-    MemorySize: !FindInMap [MemorySizeMapping, Environment, !Ref 'Environment']
-    Architectures:
-      - arm64
-    Environment:
-      Variables:
-        JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
-        AWS_STACK_NAME: !Sub ${AWS::StackName}
-        SECRET_PREFIX: !If [UseSecretPrefix, !Ref SecretPrefix , !Ref AWS::StackName]
-        POWERTOOLS_LOG_LEVEL: INFO
-        POWERTOOLS_METRICS_NAMESPACE: !Ref CriIdentifier
-        SQS_AUDIT_EVENT_PREFIX: !Ref AuditEventNamePrefix
-        COMMON_PARAMETER_NAME_PREFIX: !Ref CommonStackName
+    Function:
+        VpcConfig:
+            SecurityGroupIds:
+                - !ImportValue cri-vpc-AWSServicesEndpointSecurityGroupId
+            SubnetIds: [!ImportValue cri-vpc-PrivateSubnetIdA, !ImportValue cri-vpc-PrivateSubnetIdB]
+        PermissionsBoundary: !If
+            - UsePermissionsBoundary
+            - !Ref PermissionsBoundary
+            - !Ref AWS::NoValue
+        CodeSigningConfigArn: !If
+            - EnforceCodeSigning
+            - !Ref CodeSigningConfigArn
+            - !Ref AWS::NoValue
+        Timeout: 30 # seconds
+        Runtime: java11
+        AutoPublishAlias: live
+        Tracing: Active
+        MemorySize: !FindInMap [MemorySizeMapping, Environment, !Ref "Environment"]
+        Architectures:
+            - arm64
+        Environment:
+            Variables:
+                JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
+                AWS_STACK_NAME: !Sub ${AWS::StackName}
+                SECRET_PREFIX: !If [UseSecretPrefix, !Ref SecretPrefix, !Ref AWS::StackName]
+                POWERTOOLS_LOG_LEVEL: INFO
+                POWERTOOLS_METRICS_NAMESPACE: !Ref CriIdentifier
+                SQS_AUDIT_EVENT_PREFIX: !Ref AuditEventNamePrefix
+                COMMON_PARAMETER_NAME_PREFIX: !Ref CommonStackName
 
 Mappings:
-  MemorySizeMapping:
-    Environment:
-      dev: 512
-      build: 1024
-      staging: 1024
-      integration: 1024
-      production: 2048
+    MemorySizeMapping:
+        Environment:
+            dev: 512
+            build: 1024
+            staging: 1024
+            integration: 1024
+            production: 2048
 
-  IIQAPIDatabaseModeMapping:
-    Environment:
-      dev: Static
-      build: Static
-      staging: Static
-      integration: Static
-      production: Normal
+    IIQAPIDatabaseModeMapping:
+        Environment:
+            dev: Static
+            build: Static
+            staging: Static
+            integration: Static
+            production: Normal
 
-  IIQAPIStrategyMapping:
-    Environment:
-      dev: 3 out of 4 prioritised
-      build: 3 out of 4 prioritised
-      staging: 3 out of 4 prioritised
-      integration: 3 out of 4 prioritised
-      production: 3 out of 4 prioritised
+    IIQAPIStrategyMapping:
+        Environment:
+            dev: 3 out of 4 prioritised
+            build: 3 out of 4 prioritised
+            staging: 3 out of 4 prioritised
+            integration: 3 out of 4 prioritised
+            production: 3 out of 4 prioritised
 
-  IIQOperatorIdMapping:
-    Environment:
-      dev: GDSCABINETUIIQ01U
-      build: GDSCABINETUIIQ01U
-      staging: GDSCABINETUIIQ01U
-      integration: GDSCABINETUIIQ01U
-      production: GDSCABINETUIIQ01U
+    IIQOperatorIdMapping:
+        Environment:
+            dev: GDSCABINETUIIQ01U
+            build: GDSCABINETUIIQ01U
+            staging: GDSCABINETUIIQ01U
+            integration: GDSCABINETUIIQ01U
+            production: GDSCABINETUIIQ01U
 
-  # Only numeric values should be assigned here
-  MaxJwtTtlMapping:
-    Environment:
-      dev: 2
-      build: 2
-      staging: 6
-      integration: 6
-      production: 6
+    # Only numeric values should be assigned here
+    MaxJwtTtlMapping:
+        Environment:
+            dev: 2
+            build: 2
+            staging: 6
+            integration: 6
+            production: 6
 
-  # Permitted values: SECONDS,MINUTES,HOURS,DAYS,MONTHS,YEARS
-  JwtTtlUnitMapping:
-    Environment:
-      dev: HOURS
-      build: HOURS
-      staging: MONTHS
-      integration: MONTHS
-      production: MONTHS
+    # Permitted values: SECONDS,MINUTES,HOURS,DAYS,MONTHS,YEARS
+    JwtTtlUnitMapping:
+        Environment:
+            dev: HOURS
+            build: HOURS
+            staging: MONTHS
+            integration: MONTHS
+            production: MONTHS
 
 Resources:
-  PublicToyApi:
-    Type: AWS::Serverless::Api
-    Properties:
-      Description: Public Toy CRI API
-      MethodSettings:
-        - LoggingLevel: INFO
-          ResourcePath: '/*'
-          HttpMethod: '*'
-          # Disable data trace in production to avoid logging customer sensitive information
-          DataTraceEnabled: true
-          MetricsEnabled: true
-          ThrottlingRateLimit: 5
-          ThrottlingBurstLimit: 10
-      AccessLogSetting:
-        DestinationArn: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${PublicToyApiAccessLogGroup}'
-        Format: >-
-          {
-          "requestId":"$context.requestId",
-          "ip":"$context.identity.sourceIp",
-          "requestTime":"$context.requestTime",
-          "httpMethod":"$context.httpMethod",
-          "path":"$context.path",
-          "routeKey":"$context.routeKey",
-          "status":"$context.status",
-          "protocol":"$context.protocol",
-          "responseLatency":"$context.responseLatency",
-          "responseLength":"$context.responseLength"
-          }
-      TracingEnabled: true
-      Name: !Sub "toy-cri-${AWS::StackName}"
-      StageName: !Ref Environment
-      DefinitionBody:
-        openapi: "3.0.1" # workaround to get `sam validate` to work
-        paths: # workaround to get `sam validate` to work
-          /never-created:
-            options: { } # workaround to get `sam validate` to work
-        Fn::Transform:
-          Name: AWS::Include
-          Parameters:
-            Location: './public-api.yaml'
-      OpenApiVersion: 3.0.1
-      EndpointConfiguration:
-        Type: REGIONAL
+    PublicToyApi:
+        Type: AWS::Serverless::Api
+        Properties:
+            Description: Public Toy CRI API
+            MethodSettings:
+                - LoggingLevel: INFO
+                  ResourcePath: "/*"
+                  HttpMethod: "*"
+                  # Disable data trace in production to avoid logging customer sensitive information
+                  DataTraceEnabled: true
+                  MetricsEnabled: true
+                  ThrottlingRateLimit: 5
+                  ThrottlingBurstLimit: 10
+            AccessLogSetting:
+                DestinationArn: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${PublicToyApiAccessLogGroup}"
+                Format: >-
+                    {
+                    "requestId":"$context.requestId",
+                    "ip":"$context.identity.sourceIp",
+                    "requestTime":"$context.requestTime",
+                    "httpMethod":"$context.httpMethod",
+                    "path":"$context.path",
+                    "routeKey":"$context.routeKey",
+                    "status":"$context.status",
+                    "protocol":"$context.protocol",
+                    "responseLatency":"$context.responseLatency",
+                    "responseLength":"$context.responseLength"
+                    }
+            TracingEnabled: true
+            Name: !Sub "toy-cri-${AWS::StackName}"
+            StageName: !Ref Environment
+            DefinitionBody:
+                openapi: "3.0.1" # workaround to get `sam validate` to work
+                paths: # workaround to get `sam validate` to work
+                    /never-created:
+                        options: {} # workaround to get `sam validate` to work
+                Fn::Transform:
+                    Name: AWS::Include
+                    Parameters:
+                        Location: "./public-api.yaml"
+            OpenApiVersion: 3.0.1
+            EndpointConfiguration:
+                Type: REGIONAL
 
-  PrivateToyApi:
-    Type: AWS::Serverless::Api
-    Condition: IsNotDevEnvironment
-    Properties:
-      Description: Private Toy CRI API
-      MethodSettings:
-        - LoggingLevel: INFO
-          ResourcePath: '/*'
-          HttpMethod: '*'
-          # Disable data trace in production to avoid logging customer sensitive information
-          DataTraceEnabled: true
-          MetricsEnabled: true
-          ThrottlingRateLimit: 5
-          ThrottlingBurstLimit: 10
-      AccessLogSetting:
-        DestinationArn: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${PrivateToyApiAccessLogGroup}'
-        Format: >-
-          {
-          "requestId":"$context.requestId",
-          "ip":"$context.identity.sourceIp",
-          "requestTime":"$context.requestTime",
-          "httpMethod":"$context.httpMethod",
-          "path":"$context.path",
-          "routeKey":"$context.routeKey",
-          "status":"$context.status",
-          "protocol":"$context.protocol",
-          "responseLatency":"$context.responseLatency",
-          "responseLength":"$context.responseLength"
-          }
-      TracingEnabled: true
-      Name: !Sub "toy-cri-private-${AWS::StackName}"
-      StageName: !Ref Environment
-      DefinitionBody:
-        openapi: "3.0.1" # workaround to get `sam validate` to work
-        paths: # workaround to get `sam validate` to work
-          /never-created:
-            options: { } # workaround to get `sam validate` to work
-        Fn::Transform:
-          Name: AWS::Include
-          Parameters:
-            Location: './private-api.yaml'
-      OpenApiVersion: 3.0.1
-      EndpointConfiguration:
-        Type: PRIVATE
-      Auth:
-        ResourcePolicy:
-          CustomStatements:
-            - Action: 'execute-api:Invoke'
-              Effect: Allow
-              Principal: '*'
-              Resource:
-                - 'execute-api:/*'
-            - Action: 'execute-api:Invoke'
-              Effect: Deny
-              Principal: '*'
-              Resource:
-                - 'execute-api:/*'
-              Condition:
-                StringNotEquals:
-                  aws:SourceVpce: !If
-                    - IsDevEnvironment
-                    - vpce-082cab7c78139eb54
-                    - !ImportValue cri-vpc-ApiGatewayVpcEndpointId
+    PrivateToyApi:
+        Type: AWS::Serverless::Api
+        Condition: IsNotDevEnvironment
+        Properties:
+            Description: Private Toy CRI API
+            MethodSettings:
+                - LoggingLevel: INFO
+                  ResourcePath: "/*"
+                  HttpMethod: "*"
+                  # Disable data trace in production to avoid logging customer sensitive information
+                  DataTraceEnabled: true
+                  MetricsEnabled: true
+                  ThrottlingRateLimit: 5
+                  ThrottlingBurstLimit: 10
+            AccessLogSetting:
+                DestinationArn: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${PrivateToyApiAccessLogGroup}"
+                Format: >-
+                    {
+                    "requestId":"$context.requestId",
+                    "ip":"$context.identity.sourceIp",
+                    "requestTime":"$context.requestTime",
+                    "httpMethod":"$context.httpMethod",
+                    "path":"$context.path",
+                    "routeKey":"$context.routeKey",
+                    "status":"$context.status",
+                    "protocol":"$context.protocol",
+                    "responseLatency":"$context.responseLatency",
+                    "responseLength":"$context.responseLength"
+                    }
+            TracingEnabled: true
+            Name: !Sub "toy-cri-private-${AWS::StackName}"
+            StageName: !Ref Environment
+            DefinitionBody:
+                openapi: "3.0.1" # workaround to get `sam validate` to work
+                paths: # workaround to get `sam validate` to work
+                    /never-created:
+                        options: {} # workaround to get `sam validate` to work
+                Fn::Transform:
+                    Name: AWS::Include
+                    Parameters:
+                        Location: "./private-api.yaml"
+            OpenApiVersion: 3.0.1
+            EndpointConfiguration:
+                Type: PRIVATE
+            Auth:
+                ResourcePolicy:
+                    CustomStatements:
+                        - Action: "execute-api:Invoke"
+                          Effect: Allow
+                          Principal: "*"
+                          Resource:
+                              - "execute-api:/*"
+                        - Action: "execute-api:Invoke"
+                          Effect: Deny
+                          Principal: "*"
+                          Resource:
+                              - "execute-api:/*"
+                          Condition:
+                              StringNotEquals:
+                                  aws:SourceVpce: !If
+                                      - IsDevEnvironment
+                                      - vpce-082cab7c78139eb54
+                                      - !ImportValue cri-vpc-ApiGatewayVpcEndpointId
 
-  DevOnlyToyApi:
-    Type: AWS::Serverless::Api
-    Condition: IsDevEnvironment
-    Properties:
-      Description: Private Dev Toy CRI API
-      MethodSettings:
-        - LoggingLevel: INFO
-          ResourcePath: '/*'
-          HttpMethod: '*'
-          DataTraceEnabled: true
-          MetricsEnabled: true
-          ThrottlingRateLimit: 5
-          ThrottlingBurstLimit: 10
-      AccessLogSetting:
-        DestinationArn: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${DevOnlyToyApiAccessLogGroup}'
-        Format: >-
-          {
-          "requestId":"$context.requestId",
-          "ip":"$context.identity.sourceIp",
-          "requestTime":"$context.requestTime",
-          "httpMethod":"$context.httpMethod",
-          "path":"$context.path",
-          "routeKey":"$context.routeKey",
-          "status":"$context.status",
-          "protocol":"$context.protocol",
-          "responseLatency":"$context.responseLatency",
-          "responseLength":"$context.responseLength"
-          }
-      TracingEnabled: true
-      Name: !Sub "toy-cri-private-${AWS::StackName}"
-      StageName: !Ref Environment
-      DefinitionBody:
-        openapi: "3.0.1" # workaround to get `sam validate` to work
-        paths: # workaround to get `sam validate` to work
-          /never-created:
-            options: { } # workaround to get `sam validate` to work
-        Fn::Transform:
-          Name: AWS::Include
-          Parameters:
-            Location: './private-api.yaml'
-      OpenApiVersion: 3.0.1
-      EndpointConfiguration:
-        Type: REGIONAL
+    DevOnlyToyApi:
+        Type: AWS::Serverless::Api
+        Condition: IsDevEnvironment
+        Properties:
+            Description: Private Dev Toy CRI API
+            MethodSettings:
+                - LoggingLevel: INFO
+                  ResourcePath: "/*"
+                  HttpMethod: "*"
+                  DataTraceEnabled: true
+                  MetricsEnabled: true
+                  ThrottlingRateLimit: 5
+                  ThrottlingBurstLimit: 10
+            AccessLogSetting:
+                DestinationArn: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${DevOnlyToyApiAccessLogGroup}"
+                Format: >-
+                    {
+                    "requestId":"$context.requestId",
+                    "ip":"$context.identity.sourceIp",
+                    "requestTime":"$context.requestTime",
+                    "httpMethod":"$context.httpMethod",
+                    "path":"$context.path",
+                    "routeKey":"$context.routeKey",
+                    "status":"$context.status",
+                    "protocol":"$context.protocol",
+                    "responseLatency":"$context.responseLatency",
+                    "responseLength":"$context.responseLength"
+                    }
+            TracingEnabled: true
+            Name: !Sub "toy-cri-private-${AWS::StackName}"
+            StageName: !Ref Environment
+            DefinitionBody:
+                openapi: "3.0.1" # workaround to get `sam validate` to work
+                paths: # workaround to get `sam validate` to work
+                    /never-created:
+                        options: {} # workaround to get `sam validate` to work
+                Fn::Transform:
+                    Name: AWS::Include
+                    Parameters:
+                        Location: "./private-api.yaml"
+            OpenApiVersion: 3.0.1
+            EndpointConfiguration:
+                Type: REGIONAL
 
-  PublicToyApiAccessLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${PublicToyApi}-public-AccessLogs
-      RetentionInDays: 365
+    PublicToyApiAccessLogGroup:
+        Type: AWS::Logs::LogGroup
+        Properties:
+            LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${PublicToyApi}-public-AccessLogs
+            RetentionInDays: 365
 
-  PublicToyApiAccessLogGroupSubscriptionFilterCSLS:
-    Type: AWS::Logs::SubscriptionFilter
-    Condition: IsNotDevEnvironment
-    Properties:
-      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
-      FilterPattern: ""
-      LogGroupName: !Ref PublicToyApiAccessLogGroup
+    PublicToyApiAccessLogGroupSubscriptionFilterCSLS:
+        Type: AWS::Logs::SubscriptionFilter
+        Condition: IsNotDevEnvironment
+        Properties:
+            DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
+            FilterPattern: ""
+            LogGroupName: !Ref PublicToyApiAccessLogGroup
 
-  PrivateToyApiAccessLogGroup:
-    Type: AWS::Logs::LogGroup
-    Condition: IsNotDevEnvironment
-    Properties:
-      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${PrivateToyApi}-private-AccessLogs
-      RetentionInDays: 365
+    PrivateToyApiAccessLogGroup:
+        Type: AWS::Logs::LogGroup
+        Condition: IsNotDevEnvironment
+        Properties:
+            LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${PrivateToyApi}-private-AccessLogs
+            RetentionInDays: 365
 
-  DevOnlyToyApiAccessLogGroup:
-    Type: AWS::Logs::LogGroup
-    Condition: IsDevEnvironment
-    Properties:
-      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${DevOnlyToyApi}-private-AccessLogs
-      RetentionInDays: 30
+    DevOnlyToyApiAccessLogGroup:
+        Type: AWS::Logs::LogGroup
+        Condition: IsDevEnvironment
+        Properties:
+            LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${DevOnlyToyApi}-private-AccessLogs
+            RetentionInDays: 30
 
-  PrivateToyApiAccessLogGroupSubscriptionFilterCSLS:
-    Type: AWS::Logs::SubscriptionFilter
-    Condition: IsNotDevEnvironment
-    Properties:
-      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
-      FilterPattern: ""
-      LogGroupName: !Ref PrivateToyApiAccessLogGroup
+    PrivateToyApiAccessLogGroupSubscriptionFilterCSLS:
+        Type: AWS::Logs::SubscriptionFilter
+        Condition: IsNotDevEnvironment
+        Properties:
+            DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
+            FilterPattern: ""
+            LogGroupName: !Ref PrivateToyApiAccessLogGroup
 
-  
-  IssueCredentialFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: uk.gov.di.ipv.cri.toy.api.handler.IssueCredentialHandler::handleRequest
-      CodeUri: ../../lambdas/issuecredential
-      Environment:
-        Variables:
-          POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-issuecredential"
-          SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
-      Policies:
-        - AWSLambdaBasicExecutionRole
-        - AWSXrayWriteOnlyAccess
-        - DynamoDBReadPolicy:
-            TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
-        - DynamoDBReadPolicy:
-            TableName: !Ref ToyTable
-        - DynamoDBReadPolicy:
-            TableName: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
-        - Statement:
-            Effect: Allow
-            Action:
-              - "kms:Sign"
-            Resource: !ImportValue core-infrastructure-CriVcSigningKey1Arn
-        - SQSSendMessagePolicy:
-            QueueName: !ImportValue AuditEventQueueName
-        - Statement:
-            Effect: Allow
-            Action:
-              - ssm:GetParameter
-            Resource:
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/ToyTableName"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/verifiableCredentialKmsSigningKeyId"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/MaxJwtTtl"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/JwtTtlUnit"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/SessionTableName"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/PersonIdentityTableName"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/verifiable-credential/issuer"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/toy-cri-api-v1/quality/mappings"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/release-flags/vc-expiry-removed"
-        - Statement:
-            Effect: Allow
-            Action:
-              - kms:Decrypt
-              - kms:GenerateDataKey
-            Resource:
-              - !ImportValue AuditEventQueueEncryptionKeyArn
+    IssueCredentialFunction:
+        Type: AWS::Serverless::Function
+        Properties:
+            Handler: issue-credential-handler.ts
+            CodeUri: ../lambdas/issue-credential/src
+            Environment:
+                Variables:
+                    POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-issuecredential"
+                    SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
+            Policies:
+                - AWSLambdaBasicExecutionRole
+                - AWSXrayWriteOnlyAccess
+                - DynamoDBReadPolicy:
+                      TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
+                - DynamoDBReadPolicy:
+                      TableName: !Ref ToyTable
+                - DynamoDBReadPolicy:
+                      TableName: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
+                - Statement:
+                      Effect: Allow
+                      Action:
+                          - "kms:Sign"
+                      Resource: !ImportValue core-infrastructure-CriVcSigningKey1Arn
+                - SQSSendMessagePolicy:
+                      QueueName: !ImportValue AuditEventQueueName
+                - Statement:
+                      Effect: Allow
+                      Action:
+                          - ssm:GetParameter
+                      Resource:
+                          - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/ToyTableName"
+                          - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/verifiableCredentialKmsSigningKeyId"
+                          - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/MaxJwtTtl"
+                          - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/JwtTtlUnit"
+                          - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/SessionTableName"
+                          - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/PersonIdentityTableName"
+                          - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/verifiable-credential/issuer"
+                          - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/toy-cri-api-v1/quality/mappings"
+                          - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/release-flags/vc-expiry-removed"
+                - Statement:
+                      Effect: Allow
+                      Action:
+                          - kms:Decrypt
+                          - kms:GenerateDataKey
+                      Resource:
+                          - !ImportValue AuditEventQueueEncryptionKeyArn
 
-  IssueCredentialFunctionLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub "/aws/lambda/${IssueCredentialFunction}"
-      RetentionInDays: 30
+    IssueCredentialFunctionLogGroup:
+        Type: AWS::Logs::LogGroup
+        Properties:
+            LogGroupName: !Sub "/aws/lambda/${IssueCredentialFunction}"
+            RetentionInDays: 30
 
-  IssueCredentialFunctionLogGroupSubscriptionFilterCSLS:
-    Type: AWS::Logs::SubscriptionFilter
-    Condition: IsNotDevEnvironment
-    Properties:
-      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
-      FilterPattern: ""
-      LogGroupName: !Ref IssueCredentialFunctionLogGroup
+    IssueCredentialFunctionLogGroupSubscriptionFilterCSLS:
+        Type: AWS::Logs::SubscriptionFilter
+        Condition: IsNotDevEnvironment
+        Properties:
+            DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
+            FilterPattern: ""
+            LogGroupName: !Ref IssueCredentialFunctionLogGroup
 
-  ToyTable:
-    Type: "AWS::DynamoDB::Table"
-    Properties:
-      TableName: !Sub "toy-${AWS::StackName}"
-      BillingMode: "PAY_PER_REQUEST"
-      AttributeDefinitions:
-        - AttributeName: "sessionId"
-          AttributeType: "S"
-      KeySchema:
-        - AttributeName: "sessionId"
-          KeyType: "HASH"
-      TimeToLiveSpecification:
-        AttributeName: expiryDate
-        Enabled: true
+    ToyTable:
+        Type: "AWS::DynamoDB::Table"
+        Properties:
+            TableName: !Sub "toy-${AWS::StackName}"
+            BillingMode: "PAY_PER_REQUEST"
+            AttributeDefinitions:
+                - AttributeName: "sessionId"
+                  AttributeType: "S"
+            KeySchema:
+                - AttributeName: "sessionId"
+                  KeyType: "HASH"
+            TimeToLiveSpecification:
+                AttributeName: expiryDate
+                Enabled: true
 
-  PublicApiUsagePlan:
-    Type: AWS::ApiGateway::UsagePlan
-    Condition: IsNotDevEnvironment
-    DependsOn:
-      - PublicToyApiStage
-    Properties:
-      ApiStages:
-        - ApiId: !Ref PublicToyApi
-          Stage: !Ref Environment
-      Quota:
-        Limit: 500000
-        Period: DAY
-      Throttle:
-        BurstLimit: 100 # requests the API can handle concurrently
-        RateLimit: 50 # allowed requests per second
+    PublicApiUsagePlan:
+        Type: AWS::ApiGateway::UsagePlan
+        Condition: IsNotDevEnvironment
+        DependsOn:
+            - PublicToyApiStage
+        Properties:
+            ApiStages:
+                - ApiId: !Ref PublicToyApi
+                  Stage: !Ref Environment
+            Quota:
+                Limit: 500000
+                Period: DAY
+            Throttle:
+                BurstLimit: 100 # requests the API can handle concurrently
+                RateLimit: 50 # allowed requests per second
 
-  PrivateApiUsagePlan:
-    Type: AWS::ApiGateway::UsagePlan
-    Condition: IsNotDevEnvironment
-    DependsOn:
-      - PrivateToyApiStage
-    Properties:
-      ApiStages:
-        - ApiId: !Ref PrivateToyApi
-          Stage: !Ref Environment
-      Quota:
-        Limit: 500000
-        Period: DAY
-      Throttle:
-        BurstLimit: 100 # requests the API can handle concurrently
-        RateLimit: 50 # allowed requests per second
+    PrivateApiUsagePlan:
+        Type: AWS::ApiGateway::UsagePlan
+        Condition: IsNotDevEnvironment
+        DependsOn:
+            - PrivateToyApiStage
+        Properties:
+            ApiStages:
+                - ApiId: !Ref PrivateToyApi
+                  Stage: !Ref Environment
+            Quota:
+                Limit: 500000
+                Period: DAY
+            Throttle:
+                BurstLimit: 100 # requests the API can handle concurrently
+                RateLimit: 50 # allowed requests per second
 
-  LinkUsagePlanApiKey1:
-    Condition: IsNotDevEnvironment
-    Type: AWS::ApiGateway::UsagePlanKey
-    Properties:
-      KeyId: !ImportValue core-infrastructure-ApiKey1
-      KeyType: API_KEY
-      UsagePlanId: !Ref PublicApiUsagePlan
+    LinkUsagePlanApiKey1:
+        Condition: IsNotDevEnvironment
+        Type: AWS::ApiGateway::UsagePlanKey
+        Properties:
+            KeyId: !ImportValue core-infrastructure-ApiKey1
+            KeyType: API_KEY
+            UsagePlanId: !Ref PublicApiUsagePlan
 
-  LinkUsagePlanApiKey2:
-    Condition: IsNotDevEnvironment
-    Type: AWS::ApiGateway::UsagePlanKey
-    Properties:
-      KeyId: !ImportValue core-infrastructure-ApiKey2
-      KeyType: API_KEY
-      UsagePlanId: !Ref PublicApiUsagePlan
+    LinkUsagePlanApiKey2:
+        Condition: IsNotDevEnvironment
+        Type: AWS::ApiGateway::UsagePlanKey
+        Properties:
+            KeyId: !ImportValue core-infrastructure-ApiKey2
+            KeyType: API_KEY
+            UsagePlanId: !Ref PublicApiUsagePlan
 
-  ParameterToyItemTableName:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/ToyTableName"
-      Value: !Sub toy-${AWS::StackName}
-      Type: String
-      Description: toy item dynamodb table name
+    ParameterToyItemTableName:
+        Type: AWS::SSM::Parameter
+        Properties:
+            Name: !Sub "/${AWS::StackName}/ToyTableName"
+            Value: !Sub toy-${AWS::StackName}
+            Type: String
+            Description: toy item dynamodb table name
 
-  MaxJwtTtlParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/MaxJwtTtl"
-      Type: String
-      Value: !FindInMap [MaxJwtTtlMapping, Environment, !Ref 'Environment']
-      Description: default time to live for an JWT in (seconds)
+    MaxJwtTtlParameter:
+        Type: AWS::SSM::Parameter
+        Properties:
+            Name: !Sub "/${AWS::StackName}/MaxJwtTtl"
+            Type: String
+            Value: !FindInMap [MaxJwtTtlMapping, Environment, !Ref "Environment"]
+            Description: default time to live for an JWT in (seconds)
 
-  JwtTtlUnitParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/JwtTtlUnit"
-      Type: String
-      Value: !FindInMap [ JwtTtlUnitMapping, Environment, !Ref Environment ]
-      Description: The unit for the time-to-live for an JWT e.g. (MONTHS)
+    JwtTtlUnitParameter:
+        Type: AWS::SSM::Parameter
+        Properties:
+            Name: !Sub "/${AWS::StackName}/JwtTtlUnit"
+            Type: String
+            Value: !FindInMap [JwtTtlUnitMapping, Environment, !Ref Environment]
+            Description: The unit for the time-to-live for an JWT e.g. (MONTHS)
 
-  IIQAPIDatabaseModeParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/IIQDatabaseMode"
-      Type: String
-      Value: !FindInMap [ IIQAPIDatabaseModeMapping, Environment, !Ref 'Environment' ]
-      Description: "one of: S or Static, A or Aged, N or Normal (Live)"
+    IIQAPIDatabaseModeParameter:
+        Type: AWS::SSM::Parameter
+        Properties:
+            Name: !Sub "/${AWS::StackName}/IIQDatabaseMode"
+            Type: String
+            Value: !FindInMap [IIQAPIDatabaseModeMapping, Environment, !Ref "Environment"]
+            Description: "one of: S or Static, A or Aged, N or Normal (Live)"
 
-  IIQAPIStrategyParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/IIQStrategy"
-      Type: String
-      Value: !FindInMap [ IIQAPIStrategyMapping, Environment, !Ref 'Environment' ]
-      Description: Strategy to be used for Experian Toy Questions. Example - 3 of 4
+    IIQAPIStrategyParameter:
+        Type: AWS::SSM::Parameter
+        Properties:
+            Name: !Sub "/${AWS::StackName}/IIQStrategy"
+            Type: String
+            Value: !FindInMap [IIQAPIStrategyMapping, Environment, !Ref "Environment"]
+            Description: Strategy to be used for Experian Toy Questions. Example - 3 of 4
 
-  IIQOperatorIdParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/IIQOperatorId"
-      Type: String
-      Value: !FindInMap [ IIQOperatorIdMapping, Environment, !Ref 'Environment' ]
-      Description: Unique operator id provided by Experian to GDS
+    IIQOperatorIdParameter:
+        Type: AWS::SSM::Parameter
+        Properties:
+            Name: !Sub "/${AWS::StackName}/IIQOperatorId"
+            Type: String
+            Value: !FindInMap [IIQOperatorIdMapping, Environment, !Ref "Environment"]
+            Description: Unique operator id provided by Experian to GDS
 
-  IPVCoreStubAuthenticationAlgParameter:
-    Condition: IsStubEnvironment
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/clients/ipv-core-stub/jwtAuthentication/authenticationAlg"
-      Type: String
-      Value: ES256
+    IPVCoreStubAuthenticationAlgParameter:
+        Condition: IsStubEnvironment
+        Type: AWS::SSM::Parameter
+        Properties:
+            Name: !Sub "/${AWS::StackName}/clients/ipv-core-stub/jwtAuthentication/authenticationAlg"
+            Type: String
+            Value: ES256
 
-  VerifiableCredentialKmsSigningKeyParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/verifiableCredentialKmsSigningKeyId"
-      Type: String
-      Value: !ImportValue core-infrastructure-CriVcSigningKey1Id
-      Description: Verifiable Credential Key Id
+    VerifiableCredentialKmsSigningKeyParameter:
+        Type: AWS::SSM::Parameter
+        Properties:
+            Name: !Sub "/${AWS::StackName}/verifiableCredentialKmsSigningKeyId"
+            Type: String
+            Value: !ImportValue core-infrastructure-CriVcSigningKey1Id
+            Description: Verifiable Credential Key Id
 
-  PublicToyApiGatewayIdParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/PublicToyApiGatewayId"
-      Type: String
-      Value: !Sub "${PublicToyApi}"
-      Description: "API GatewayID of the public Toy CRI API"
+    PublicToyApiGatewayIdParameter:
+        Type: AWS::SSM::Parameter
+        Properties:
+            Name: !Sub "/${AWS::StackName}/PublicToyApiGatewayId"
+            Type: String
+            Value: !Sub "${PublicToyApi}"
+            Description: "API GatewayID of the public Toy CRI API"
 
-  PublicToyApiBaseUrlParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/PublicToyApiBaseUrl"
-      Type: String
-      Value: !Sub "https://${PublicToyApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
-      Description: "Base url of the public Toy CRI API"
+    PublicToyApiBaseUrlParameter:
+        Type: AWS::SSM::Parameter
+        Properties:
+            Name: !Sub "/${AWS::StackName}/PublicToyApiBaseUrl"
+            Type: String
+            Value: !Sub "https://${PublicToyApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
+            Description: "Base url of the public Toy CRI API"
 
-  IssueCredentialFunctionPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !GetAtt IssueCredentialFunction.Arn
-      Principal: apigateway.amazonaws.com
+    IssueCredentialFunctionPermission:
+        Type: AWS::Lambda::Permission
+        Properties:
+            Action: lambda:InvokeFunction
+            FunctionName: !GetAtt IssueCredentialFunction.Arn
+            Principal: apigateway.amazonaws.com
 
-  LoggingKmsKey:
-    Type: AWS::KMS::Key
-    Properties:
-      EnableKeyRotation: true
-      KeyPolicy:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
-            Action:
-              - kms:*
-            Resource: "*"
-          - Effect: Allow
-            Principal:
-              Service: !Sub "logs.${AWS::Region}.amazonaws.com"
-            Action:
-              - "kms:Encrypt*"
-              - "kms:Decrypt*"
-              - "kms:ReEncrypt*"
-              - "kms:GenerateDataKey*"
-              - "kms:Describe*"
-            Resource: "*"
-            Condition:
-              ArnLike:
-                "kms:EncryptionContext:aws:logs:arn": !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+    LoggingKmsKey:
+        Type: AWS::KMS::Key
+        Properties:
+            EnableKeyRotation: true
+            KeyPolicy:
+                Version: 2012-10-17
+                Statement:
+                    - Effect: Allow
+                      Principal:
+                          AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+                      Action:
+                          - kms:*
+                      Resource: "*"
+                    - Effect: Allow
+                      Principal:
+                          Service: !Sub "logs.${AWS::Region}.amazonaws.com"
+                      Action:
+                          - "kms:Encrypt*"
+                          - "kms:Decrypt*"
+                          - "kms:ReEncrypt*"
+                          - "kms:GenerateDataKey*"
+                          - "kms:Describe*"
+                      Resource: "*"
+                      Condition:
+                          ArnLike:
+                              "kms:EncryptionContext:aws:logs:arn": !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
 
-  ToyLambdaErrors:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: !Sub Toy ${Environment} lambda errors
-      ActionsEnabled: true
-      AlarmActions:
-        - !ImportValue core-infrastructure-AlarmTopic
-      OKActions:
-        - !ImportValue core-infrastructure-AlarmTopic
-      InsufficientDataActions: []
-      MetricName: Errors
-      Namespace: AWS/Lambda
-      Statistic: Sum
-      Dimensions: []
-      Period: 300
-      DatapointsToAlarm: 3
-      EvaluationPeriods: 3
-      Threshold: 1
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: notBreaching
-
-  ToyAPIGW5XXErrors:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: !Sub Toy ${Environment} API Gateway 5XX errors
-      ActionsEnabled: true
-      AlarmActions:
-        - !ImportValue core-infrastructure-AlarmTopic
-      OKActions:
-        - !ImportValue core-infrastructure-AlarmTopic
-      InsufficientDataActions: []
-      Dimensions: []
-      DatapointsToAlarm: 3
-      EvaluationPeriods: 3
-      Threshold: 1
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: notBreaching
-      Metrics:
-        - Id: e1
-          Label: Expression1
-          ReturnData: true
-          Expression: SUM(METRICS())
-        - Id: m1
-          ReturnData: false
-          MetricStat:
-            Metric:
-              Namespace: AWS/ApiGateway
-              MetricName: 5XXError
-              Dimensions:
-                - Name: ApiName
-                  Value: !Sub "toy-cri-${AWS::StackName}"
+    ToyLambdaErrors:
+        Type: AWS::CloudWatch::Alarm
+        Properties:
+            AlarmDescription: !Sub Toy ${Environment} lambda errors
+            ActionsEnabled: true
+            AlarmActions:
+                - !ImportValue core-infrastructure-AlarmTopic
+            OKActions:
+                - !ImportValue core-infrastructure-AlarmTopic
+            InsufficientDataActions: []
+            MetricName: Errors
+            Namespace: AWS/Lambda
+            Statistic: Sum
+            Dimensions: []
             Period: 300
-            Stat: Sum
-        - Id: m2
-          ReturnData: false
-          MetricStat:
-            Metric:
-              Namespace: AWS/ApiGateway
-              MetricName: 5XXError
-              Dimensions:
-                - Name: ApiName
-                  Value: !Sub "toy-cri-private-${AWS::StackName}"
-            Period: 300
-            Stat: Sum
+            DatapointsToAlarm: 3
+            EvaluationPeriods: 3
+            Threshold: 1
+            ComparisonOperator: GreaterThanThreshold
+            TreatMissingData: notBreaching
 
-  ToyAPIGW4XXErrors:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: !Sub Toy ${Environment} API Gateway 4XX errors
-      ActionsEnabled: true
-      AlarmActions:
-        - !ImportValue core-infrastructure-AlarmTopic
-      OKActions:
-        - !ImportValue core-infrastructure-AlarmTopic
-      InsufficientDataActions: []
-      Dimensions: []
-      DatapointsToAlarm: 3
-      EvaluationPeriods: 3
-      Threshold: 2
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: notBreaching
-      Metrics:
-        - Id: e1
-          Label: Expression1
-          ReturnData: true
-          Expression: SUM(METRICS())
-        - Id: m1
-          ReturnData: false
-          MetricStat:
-            Metric:
-              Namespace: AWS/ApiGateway
-              MetricName: 4XXError
-              Dimensions:
-                - Name: ApiName
-                  Value: !Sub "toy-cri-${AWS::StackName}"
-            Period: 300
-            Stat: Sum
-        - Id: m2
-          ReturnData: false
-          MetricStat:
-            Metric:
-              Namespace: AWS/ApiGateway
-              MetricName: 4XXError
-              Dimensions:
-                - Name: ApiName
-                  Value: !Sub "toy-cri-private-${AWS::StackName}"
-            Period: 300
-            Stat: Sum
+    ToyAPIGW5XXErrors:
+        Type: AWS::CloudWatch::Alarm
+        Properties:
+            AlarmDescription: !Sub Toy ${Environment} API Gateway 5XX errors
+            ActionsEnabled: true
+            AlarmActions:
+                - !ImportValue core-infrastructure-AlarmTopic
+            OKActions:
+                - !ImportValue core-infrastructure-AlarmTopic
+            InsufficientDataActions: []
+            Dimensions: []
+            DatapointsToAlarm: 3
+            EvaluationPeriods: 3
+            Threshold: 1
+            ComparisonOperator: GreaterThanThreshold
+            TreatMissingData: notBreaching
+            Metrics:
+                - Id: e1
+                  Label: Expression1
+                  ReturnData: true
+                  Expression: SUM(METRICS())
+                - Id: m1
+                  ReturnData: false
+                  MetricStat:
+                      Metric:
+                          Namespace: AWS/ApiGateway
+                          MetricName: 5XXError
+                          Dimensions:
+                              - Name: ApiName
+                                Value: !Sub "toy-cri-${AWS::StackName}"
+                      Period: 300
+                      Stat: Sum
+                - Id: m2
+                  ReturnData: false
+                  MetricStat:
+                      Metric:
+                          Namespace: AWS/ApiGateway
+                          MetricName: 5XXError
+                          Dimensions:
+                              - Name: ApiName
+                                Value: !Sub "toy-cri-private-${AWS::StackName}"
+                      Period: 300
+                      Stat: Sum
+
+    ToyAPIGW4XXErrors:
+        Type: AWS::CloudWatch::Alarm
+        Properties:
+            AlarmDescription: !Sub Toy ${Environment} API Gateway 4XX errors
+            ActionsEnabled: true
+            AlarmActions:
+                - !ImportValue core-infrastructure-AlarmTopic
+            OKActions:
+                - !ImportValue core-infrastructure-AlarmTopic
+            InsufficientDataActions: []
+            Dimensions: []
+            DatapointsToAlarm: 3
+            EvaluationPeriods: 3
+            Threshold: 2
+            ComparisonOperator: GreaterThanThreshold
+            TreatMissingData: notBreaching
+            Metrics:
+                - Id: e1
+                  Label: Expression1
+                  ReturnData: true
+                  Expression: SUM(METRICS())
+                - Id: m1
+                  ReturnData: false
+                  MetricStat:
+                      Metric:
+                          Namespace: AWS/ApiGateway
+                          MetricName: 4XXError
+                          Dimensions:
+                              - Name: ApiName
+                                Value: !Sub "toy-cri-${AWS::StackName}"
+                      Period: 300
+                      Stat: Sum
+                - Id: m2
+                  ReturnData: false
+                  MetricStat:
+                      Metric:
+                          Namespace: AWS/ApiGateway
+                          MetricName: 4XXError
+                          Dimensions:
+                              - Name: ApiName
+                                Value: !Sub "toy-cri-private-${AWS::StackName}"
+                      Period: 300
+                      Stat: Sum
 Outputs:
+    StackName:
+        Description: "CloudFormation stack name"
+        Value: !Sub "${AWS::StackName}"
 
-  StackName:
-    Description: "CloudFormation stack name"
-    Value: !Sub "${AWS::StackName}"
+    PublicToyApiGatewayId:
+        Description: "API GatewayID of the public Toy CRI API"
+        Value: !Sub "${PublicToyApi}"
+        Export:
+            Name: !Sub ${AWS::StackName}-PublicToyApiGatewayId
 
-  PublicToyApiGatewayId:
-    Description: "API GatewayID of the public Toy CRI API"
-    Value: !Sub "${PublicToyApi}"
-    Export:
-      Name: !Sub ${AWS::StackName}-PublicToyApiGatewayId
+    PrivateToyApiGatewayId:
+        Description: "API GatewayID of the private Toy CRI API"
+        Value: !If [IsNotDevEnvironment, !Ref PrivateToyApi, !Ref DevOnlyToyApi]
+        Export:
+            Name: !Sub ${AWS::StackName}-PrivateToyApiGatewayId
 
-  PrivateToyApiGatewayId:
-    Description: "API GatewayID of the private Toy CRI API"
-    Value: !If [IsNotDevEnvironment, !Ref PrivateToyApi, !Ref DevOnlyToyApi]
-    Export:
-      Name: !Sub ${AWS::StackName}-PrivateToyApiGatewayId
-
-  ToyApiGatewayId:
-    Description: "API GatewayID of the Toy CRI API - export currently used by dns-records stack"
-    Value: !Sub "${PublicToyApi}"
-    Export:
-      Name: !Sub ${AWS::StackName}-ToyApiGatewayId
+    ToyApiGatewayId:
+        Description: "API GatewayID of the Toy CRI API - export currently used by dns-records stack"
+        Value: !Sub "${PublicToyApi}"
+        Export:
+            Name: !Sub ${AWS::StackName}-ToyApiGatewayId

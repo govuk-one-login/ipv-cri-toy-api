@@ -17,9 +17,13 @@ hs_err_pid*
 .aws-sam
 .idea
 **/build/*
+build
 
 /integration-tests/target/
 /integration-tests/bin/
 
+node_modules
 node_modules/*
 
+coverage
+coverage/*
