@@ -135,44 +135,6 @@ components:
             properties:
                 session_id:
                     type: "string"
-        Question:
-            type: "object"
-            properties:
-                questionID:
-                    type: "string"
-                text:
-                    type: "string"
-                tooltip:
-                    type: "string"
-                answerHeldFlag:
-                    type: "string"
-                answerFormat:
-                    $ref: "#/components/schemas/AnswerFormat"
-        AnswerFormat:
-            type: "object"
-            properties:
-                identifier:
-                    type: "string"
-                fieldType:
-                    type: "string"
-                answerList:
-                    type: array
-                    items:
-                        type: "string"
-        Answer:
-            required:
-                - "questionId"
-                - "answer"
-            type: "object"
-            properties:
-                questionId:
-                    description: The unique identifier for the question
-                    maxLength: 6
-                    type: "string"
-                answer:
-                    description: Answer provided by the user
-                    maxLength: 50
-                    type: "string"
 
 x-amazon-apigateway-request-validators:
     Validate both:
