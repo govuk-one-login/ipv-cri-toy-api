@@ -10,6 +10,10 @@ import {
 } from "aws-lambda";
 import { AwsClientType, createClient } from "../../common/aws-client-factory";
 import { ConfigService } from "../../common/config/config-service";
+import {
+  InvalidToyError,
+  SessionExpiredError,
+} from "../../common/utils/errors";
 import { logger, metrics } from "../../common/utils/power-tool";
 import initialiseConfigMiddleware from "../../middlewares/config/initialise-config-middleware";
 import errorMiddleware from "../../middlewares/error/error-middleware";
@@ -33,39 +37,25 @@ export class FavouriteLambda implements LambdaInterface {
   ): Promise<APIGatewayProxyResult | { statusCode: number }> {
     logger.info("Favourite lambda triggered");
     const sessionItem = event.body as unknown as SessionItem;
-    const toyBody = event.body as unknown as { toy: string };
-
+    const toyBody = event.body as unknown as ToyItem;
     if (sessionService.hasDateExpired(sessionItem.expiryDate)) {
-      throw new Error("Session expired");
+      throw new SessionExpiredError();
     }
-
     const response = await this.callExternalToy(toyBody.toy);
-
     if (response.status != 200) {
-      throw new Error("Invalid toy" + response.json());
+      throw new InvalidToyError(toyBody.toy);
     }
 
-    const toyItem = this.createToyItem(
-      sessionItem.sessionId,
-      toyBody.toy,
-      response.status == 200
-    );
+    toyBody.sessionId = sessionItem.sessionId;
+    toyBody.status =
+      response.status == 200 ? "Authenticated" : "Not Authenticated";
 
     return {
       statusCode: response.status,
-      body: JSON.stringify(toyItem),
-    };
-  }
-
-  private createToyItem(
-    sessionId: string,
-    toy: string,
-    success: boolean
-  ): ToyItem {
-    return {
-      sessionId: sessionId,
-      status: success ? "Authenticated" : "Not authenticated",
-      toy: toy,
+      body: JSON.stringify({
+        ...toyBody,
+        ...sessionItem,
+      }),
     };
   }
 

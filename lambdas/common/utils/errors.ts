@@ -151,3 +151,10 @@ export class SessionExpiredError extends BaseError {
     this.code = 1028;
   }
 }
+
+export class InvalidToyError extends BaseError {
+  constructor(toy: string) {
+    super("Invalid toy submitted: " + toy);
+    this.statusCode = 404;
+  }
+}
