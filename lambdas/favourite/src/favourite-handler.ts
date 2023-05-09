@@ -59,7 +59,7 @@ export class FavouriteLambda implements LambdaInterface {
     };
   }
 
-  private async callExternalToy(toy: string) {
+  private async callExternalToy(toy: string): Promise<Response> {
     logger.info("Calling external toy API");
     return await fetch(TOY_API_URL + "/" + toy, {
       method: "GET",
