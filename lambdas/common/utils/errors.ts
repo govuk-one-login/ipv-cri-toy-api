@@ -152,9 +152,9 @@ export class SessionExpiredError extends BaseError {
   }
 }
 
-export class InvalidToyError extends BaseError {
+export class ToyNotFoundError extends BaseError {
   constructor(toy: string) {
-    super("Invalid toy submitted: " + toy);
+    super("Toy not found: " + toy);
     this.statusCode = 404;
   }
 }

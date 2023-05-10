@@ -193,6 +193,6 @@ describe("favourite-handler.ts", () => {
     const response = await lambdaHandler(mockEvent, {} as Context);
     const errorBody = JSON.parse(response.body);
     expect(response.statusCode).toBe(404);
-    expect(errorBody.message).toBe("Invalid toy submitted: marbles");
+    expect(errorBody.message).toBe("Toy not found: marbles");
   });
 });
