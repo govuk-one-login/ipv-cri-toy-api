@@ -11,7 +11,7 @@ import {
 import { AwsClientType, createClient } from "../../common/aws-client-factory";
 import { ConfigService } from "../../common/config/config-service";
 import {
-  InvalidToyError,
+  ToyNotFoundError,
   SessionExpiredError,
 } from "../../common/utils/errors";
 import { logger, metrics } from "../../common/utils/power-tool";
@@ -43,7 +43,7 @@ export class FavouriteLambda implements LambdaInterface {
     }
     const response = await this.callExternalToy(toyBody.toy);
     if (response.status != 200) {
-      throw new InvalidToyError(toyBody.toy);
+      throw new ToyNotFoundError(toyBody.toy);
     }
 
     toyBody.sessionId = sessionItem.sessionId;
