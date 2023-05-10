@@ -18,5 +18,7 @@ jobs:
           node-version: '18.x'
       - name: Install Dependencies
         run: npm install
+      - name: Run lint - prettier
+        run: npm run lint:prettier
       - name: Run Tests
         run: npm run test
