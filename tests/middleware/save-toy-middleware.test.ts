@@ -60,7 +60,7 @@ describe("save-toy-middleware.ts", () => {
             dynamoDbClient: dynamoDbClient.prototype
         });
         if (middleware && middleware.after) {
-            await middleware.after(mockEvent as Request<any>);
+            await middleware.after(mockEvent as Request<unknown>);
             expect(dbSpy).toHaveBeenCalledTimes(1);
             expect(putCommand).toHaveBeenCalledWith({
               TableName: "/toy-cri-v1/ToyTableName",

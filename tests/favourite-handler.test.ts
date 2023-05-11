@@ -44,7 +44,7 @@ describe("favourite-handler.ts", () => {
   let configService: jest.MockedObjectDeep<typeof ConfigService>;
   let sessionService: jest.MockedObjectDeep<typeof SessionService>;
   let dynamoDbClient: jest.MockedObjectDeep<typeof DynamoDBDocument>;
-  let putCommand: jest.MockedObjectDeep<typeof PutCommand>;
+  let _putCommand: jest.MockedObjectDeep<typeof PutCommand>;
 
   const WEEK_IN_SECONDS = 7 * 24 * 60 * 60;
 
@@ -77,7 +77,7 @@ describe("favourite-handler.ts", () => {
     configService = jest.mocked(ConfigService);
     sessionService = jest.mocked(SessionService);
     dynamoDbClient = jest.mocked(DynamoDBDocument);
-    putCommand = jest.mocked(PutCommand);
+    _putCommand = jest.mocked(PutCommand);
 
     favouriteLambda = new FavouriteLambda();
 
