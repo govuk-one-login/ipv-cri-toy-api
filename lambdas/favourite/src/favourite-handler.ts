@@ -19,7 +19,7 @@ import initialiseConfigMiddleware from "../../middlewares/config/initialise-conf
 import errorMiddleware from "../../middlewares/error/error-middleware";
 import getSessionByIdMiddleware from "../../middlewares/session/get-session-by-id-middleware";
 import setGovUkSigningJourneyIdMiddleware from "../../middlewares/session/set-gov-uk-signing-journey-id-middleware";
-import uploadToyItemMiddleware from "../../middlewares/toy/upload-toy-middleware";
+import saveToyMiddleware from "../../middlewares/toy/save-toy-middleware";
 import { SessionService } from "../../services/session-service";
 import { CommonConfigKey } from "../../types/config-keys";
 import { SessionItem } from "../../types/session-item";
@@ -89,7 +89,7 @@ export const lambdaHandler: Handler = middy(
   )
   .use(getSessionByIdMiddleware({ sessionService: sessionService }))
   .use(
-    uploadToyItemMiddleware({
+    saveToyMiddleware({
       configService: configService,
       dynamoDbClient: dynamoDbClient,
     })

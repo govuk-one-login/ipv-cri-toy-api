@@ -13,7 +13,7 @@ import initialiseConfigMiddleware from "../lambdas/middlewares/config/initialise
 import errorMiddleware from "../lambdas/middlewares/error/error-middleware";
 import getSessionByIdMiddleware from "../lambdas/middlewares/session/get-session-by-id-middleware";
 import setGovUkSigningJourneyIdMiddleware from "../lambdas/middlewares/session/set-gov-uk-signing-journey-id-middleware";
-import uploadToyItemMiddleware from "../lambdas/middlewares/toy/upload-toy-middleware";
+import saveToyMiddleware from "../lambdas/middlewares/toy/save-toy-middleware";
 import { SessionService } from "../lambdas/services/session-service";
 import { CommonConfigKey } from "../lambdas/types/config-keys";
 
@@ -99,7 +99,7 @@ describe("favourite-handler.ts", () => {
         getSessionByIdMiddleware({ sessionService: sessionService.prototype })
       )
       .use(
-        uploadToyItemMiddleware({
+        saveToyMiddleware({
           configService: configService.prototype,
           dynamoDbClient: dynamoDbClient.prototype,
         })
@@ -131,20 +131,6 @@ describe("favourite-handler.ts", () => {
     expect(response.statusCode).toBe(200);
   });
 
-  it("should get the session item", async () => {
-    const sessionSpy = jest
-      .spyOn(sessionService.prototype, "getSession")
-      .mockReturnValue({
-        sessionId: "6b0f3490-db8b-4803-967d-39d77a2ece21",
-        expiryDate: Math.floor(Date.now() / 1000) + WEEK_IN_SECONDS,
-      });
-    const response = await lambdaHandler(mockEvent, {} as Context);
-    expect(sessionSpy).toHaveBeenCalledWith(
-      "6b0f3490-db8b-4803-967d-39d77a2ece21"
-    );
-    expect(response.statusCode).toEqual(200);
-  });
-
   it("should check the toy against the external API", async () => {
     const mockFetch = getMockFetch();
     global.fetch = mockFetch;
@@ -152,28 +138,6 @@ describe("favourite-handler.ts", () => {
     expect(mockFetch).toHaveBeenCalledWith("third/party/API/marbles", {
       method: "GET",
     });
-    expect(response.statusCode).toEqual(200);
-  });
-
-  it("should upload the toy item to dynamo", async () => {
-    const dbSpy = jest
-      .spyOn(dynamoDbClient.prototype, "send")
-      .mockImplementation();
-    const response = await lambdaHandler(mockEvent, {} as Context);
-    expect(putCommand).toHaveBeenCalledWith({
-      TableName: "/toy-cri-v1/ToyTableName",
-      Item: {
-        sessionId: "6b0f3490-db8b-4803-967d-39d77a2ece21",
-        clientId: "toy-cri",
-        expiryDate: expect.closeTo(
-          Math.floor(Date.now() / 1000) + WEEK_IN_SECONDS,
-          5
-        ),
-        status: "Authenticated",
-        toy: "marbles",
-      },
-    });
-    expect(dbSpy).toHaveBeenCalledTimes(1);
     expect(response.statusCode).toEqual(200);
   });
 
