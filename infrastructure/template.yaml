@@ -358,8 +358,8 @@ Resources:
   IssueCredentialFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: issue-credential-handler.ts
-      CodeUri: ../lambdas/issue-credential/src
+      Handler: issue-credential-handler.lambdaHandler
+      CodeUri: ../
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-issuecredential"
@@ -401,6 +401,23 @@ Resources:
               - kms:GenerateDataKey
             Resource:
               - !ImportValue AuditEventQueueEncryptionKeyArn
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: "node18"
+        Sourcemap: true # Enabling source maps will create the required NODE_OPTIONS environment variables on your lambda function during sam build
+        EntryPoints:
+          - lambdas/issue-credential/src/issue-credential-handler.ts
+        External:
+          - "@aws-sdk/*"
+  
+  IssueCredentialPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt IssueCredentialFunction.Arn
+      Principal: apigateway.amazonaws.com
 
   IssueCredentialFunctionLogGroup:
     Type: AWS::Logs::LogGroup
