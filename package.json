@@ -27,6 +27,7 @@
     "@types/jest": "^29.5.0",
     "@typescript-eslint/eslint-plugin": "5.10.2",
     "@typescript-eslint/parser": "5.10.2",
+    "esbuild-jest": "^0.5.0",
     "eslint": "8.8.0",
     "eslint-config-prettier": "8.3.0",
     "eslint-plugin-prettier": "4.0.0",
@@ -38,8 +39,16 @@
   },
   "dependencies": {
     "@aws-lambda-powertools/commons": "^1.8.0",
-    "@middy/core": "^4.4.1",
+    "@aws-lambda-powertools/logger": "^1.8.0",
+    "@aws-lambda-powertools/metrics": "^1.8.0",
+    "@aws-lambda-powertools/tracer": "^1.8.0",
+    "@aws-sdk/client-ssm": "^3.325.0",
+    "@aws-sdk/credential-providers": "^3.326.0",
+    "@aws-sdk/lib-dynamodb": "^3.325.0",
+    "@middy/core": "^4.4.0",
     "aws-lambda": "^1.0.7",
-    "esbuild": "^0.17.18"
+    "dotenv": "^16.0.3",
+    "esbuild": "^0.17.18",
+    "jose": "^4.14.4"
   }
 }

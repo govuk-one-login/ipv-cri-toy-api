@@ -24,4 +24,5 @@ export default {
   testMatch: ["**/tests/**/*.test.ts"],
   preset: "ts-jest",
   testEnvironment: "node",
+  globalSetup: "<rootDir>/dotenv/dotenv-test.js",
 };
