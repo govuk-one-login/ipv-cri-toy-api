@@ -411,6 +411,13 @@ Resources:
           - lambdas/issue-credential/src/issue-credential-handler.ts
         External:
           - "@aws-sdk/*"
+  
+  IssueCredentialPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt IssueCredentialFunction.Arn
+      Principal: apigateway.amazonaws.com
 
   IssueCredentialFunctionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -425,13 +432,6 @@ Resources:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
       FilterPattern: ""
       LogGroupName: !Ref IssueCredentialFunctionLogGroup
-
-  IssueCredentialPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !GetAtt IssueCredentialFunction.Arn
-      Principal: apigateway.amazonaws.com
 
   FavouriteFunction:
     Type: AWS::Serverless::Function
