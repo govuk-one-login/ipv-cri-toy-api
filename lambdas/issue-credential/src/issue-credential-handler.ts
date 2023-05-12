@@ -1,7 +1,12 @@
 import { LambdaInterface } from "@aws-lambda-powertools/commons";
-import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
+import middy from "@middy/core";
+import {
+  APIGatewayProxyEvent,
+  APIGatewayProxyResult,
+  Handler,
+} from "aws-lambda";
 
-export class AccessTokenLambda implements LambdaInterface {
+export class IssueCredentialLambda implements LambdaInterface {
   public async handler(
     _event: APIGatewayProxyEvent,
     _context: unknown
@@ -11,3 +16,9 @@ export class AccessTokenLambda implements LambdaInterface {
     };
   }
 }
+
+const handlerClass = new IssueCredentialLambda();
+
+export const lambdaHandler: Handler = middy(
+  handlerClass.handler.bind(handlerClass)
+);
