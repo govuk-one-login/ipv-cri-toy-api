@@ -48,3 +48,33 @@ resources:
       value: invalid
     response:
       statusCode: 500
+
+  - method: POST
+    path: /favourite
+    requestHeaders:
+      SessionHeader: session-id
+    requestBody:
+      jsonPath: $.toy
+      value: football
+    response:
+      statusCode: 200
+
+  - method: POST
+    path: /favourite
+    requestHeaders:
+      SessionHeader: session-id
+    requestBody:
+      jsonPath: $.toy
+      value: pikachu
+    response:
+      statusCode: 404
+
+  - method: POST
+    path: /favourite
+    requestHeaders:
+      SessionHeader: session-id
+    requestBody:
+      jsonPath: $.toy
+      value: ""
+    response:
+      statusCode: 500
