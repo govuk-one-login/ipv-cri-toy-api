@@ -48,5 +48,3 @@ resources:
       value: invalid
     response:
       statusCode: 500
-
-  # TODO: http 200 for /session
