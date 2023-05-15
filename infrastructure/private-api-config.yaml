@@ -1,0 +1,52 @@
+plugin: openapi
+specFile: ./private-api.yaml
+
+validation:
+  request: log
+
+resources:
+  - method: GET
+    path: /authorization
+    requestHeaders:
+      SessionHeader: session-id
+    response:
+      statusCode: 200
+
+  - method: GET
+    path: /authorization
+    requestHeaders:
+      SessionHeader: ""
+    response:
+      statusCode: 400
+
+  - method: GET
+    path: /authorization
+    requestHeaders:
+    response:
+      statusCode: 500
+
+  - method: POST
+    path: /session
+    requestBody:
+      jsonPath: $.client_id
+      value: ipv-core-stub
+    requestHeaders:
+      X-Forwarded-For: test
+    response:
+      statusCode: 201
+
+  - method: POST
+    path: /session
+    requestBody:
+      value: ""
+    response:
+      statusCode: 400
+
+  - method: POST
+    path: /session
+    requestBody:
+      value: invalid
+    response:
+      statusCode: 500
+
+  # TODO: http 200 for /session
