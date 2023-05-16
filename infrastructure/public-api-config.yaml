@@ -9,14 +9,14 @@ resources:
   - method: POST
     path: /token
     formParams:
-      code: aaaaaaaaa
+      code: bad400
     response:
       statusCode: 400
 
   - method: POST
     path: /token
     formParams:
-      code: null
+      code: bad500
     response:
       statusCode: 500
 
@@ -27,27 +27,22 @@ resources:
 
   - method: POST
     path: /credential/issue
+    requestHeaders:
+      Authorization: Bearer 123456789
+      application/jwt: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
     response:
       statusCode: 200
 
   - method: POST
     path: /credential/issue
     requestHeaders:
-      SessionHeader: Authorization Bearer 123456789
-      application/jwt: 123456789
-    response:
-      statusCode: 200
-
-  - method: POST
-    path: /credential/issue
-    requestHeaders:
-      SessionHeader: Authorization Bearer 0
+      Authorization: Bearer bad400
     response:
       statusCode: 400
 
   - method: POST
     path: /credential/issue
     requestHeaders:
-      SessionHeader: Authorization Bearer bad
+      Authorization: Bearer bad500
     response:
       statusCode: 500
