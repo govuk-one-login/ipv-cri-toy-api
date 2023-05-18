@@ -5,10 +5,11 @@ validation:
   request: log
 
 resources:
+
   - method: GET
     path: /authorization
     requestHeaders:
-      session-id: 123456789
+      session-id: good200
     response:
       statusCode: 200
 
@@ -21,6 +22,8 @@ resources:
 
   - method: GET
     path: /authorization
+    requestHeaders:
+      session-id: bad500
     response:
       statusCode: 500
 
@@ -30,7 +33,7 @@ resources:
       jsonPath: $.client_id
       value: ipv-toy-stub
     requestHeaders:
-      X-Forwarded-For: test
+      X-Forwarded-For: b6372710-f401-11ed-a05b-0242ac120003
     response:
       statusCode: 201
 
@@ -59,7 +62,7 @@ resources:
   - method: POST
     path: /favourite
     requestHeaders:
-      SessionHeader: session-id
+      session-id: 1234565789
     requestBody:
       jsonPath: $.toy
       value: pikachu
@@ -69,6 +72,6 @@ resources:
   - method: POST
     path: /favourite
     requestHeaders:
-      SessionHeader: bad500
+      session-id: bad500
     response:
       statusCode: 500

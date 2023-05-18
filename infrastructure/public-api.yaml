@@ -127,6 +127,12 @@ paths:
         type: "aws_proxy"
 
 components:
+  examples:
+    token:
+      description: Token
+      value: |
+        Dolls House
+
   schemas:
     TokenResponse:
       title: AccessToken
