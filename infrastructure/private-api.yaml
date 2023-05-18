@@ -44,13 +44,33 @@ paths:
           schema:
             type: string
             format: string
-            example: "192.168.1.1"
           required: true
+          examples:
+            example1:
+              summary: "HTTP 201"
+              value: "192.168.1.1"
+            example2:
+              summary: "HTTP 400"
+              value: "10.0.0.1"
       requestBody:
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/Authorization"
+            examples:
+              example1:
+                summary: 201 path
+                value:
+                  client_id: "ipv-toy-stub"
+                  request: "string"
+              example2:
+                summary: 400 path
+                value:
+                  client_id: "ipv-core-stub"
+                  request: "string"
+              example3:
+                summary: 500 path
+                value:
         required: true
       responses:
         "400":
@@ -93,6 +113,23 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/Favourite"
+            examples:
+              jigsaw-puzzle:
+                summary: 200 path - jigsaw-puzzle
+                value:
+                  toy: "jigsaw-puzzle"
+              train-set:
+                summary: 200 path - train-set
+                value:
+                  toy: "train-set"
+              football:
+                summary: 404 path - football
+                value:
+                  toy: "football"
+              tennis-bat:
+                summary: 404 path - tennis-bat
+                value:
+                  toy: "tennis-bat"
         required: true
       responses:
         "404":

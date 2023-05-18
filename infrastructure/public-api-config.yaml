@@ -36,11 +36,13 @@ resources:
   - method: POST
     path: /credential/issue
     requestHeaders:
-      Authorization: Bearer bad400
+      Authorization: "Bearer bad400"
     response:
       statusCode: 400
 
   - method: POST
     path: /credential/issue
+    requestHeaders:
+      Authorization: "Bearer bad500"
     response:
       statusCode: 500

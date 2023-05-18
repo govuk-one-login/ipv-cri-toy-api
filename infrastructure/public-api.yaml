@@ -36,6 +36,31 @@ paths:
                   type: "string"
                   format: "uri"
                   example: "https://di-ipv-core-stub.london.cloudapps.digital/callback"
+            examples:
+              example1:
+                summary: 201 path
+                value:
+                  grant_type: "string"
+                  code: "981bb74c-3b5e-462e-ba3a-abf868e5da68"
+                  client_assertion_type: "string"
+                  client_assertion: "string"
+                  redirect_uri: "https://di-ipv-core-stub.london.cloudapps.digital/callback"
+              example2:
+                summary: 400 path
+                value:
+                  grant_type: "string"
+                  code: "bad400"
+                  client_assertion_type: "string"
+                  client_assertion: "string"
+                  redirect_uri: "https://di-ipv-core-stub.london.cloudapps.digital/callback"
+              example3:
+                summary: 500 path
+                value:
+                  grant_type: "string"
+                  code: "string"
+                  client_assertion_type: "string"
+                  client_assertion: "string"
+                  redirect_uri: "string"
       responses:
         "201":
           description: "201 response"
@@ -73,19 +98,29 @@ paths:
         contentHandling: "CONVERT_TO_TEXT"
         type: "aws_proxy"
   /credential/issue:
-    summary: Resource for the KBV API
-    description: >-
-      This API is expected to be called by the IPV core backend directly as the
-      final part of the OpenId/Oauth Flow
-    parameters:
-      - name: Authorization
-        in: header
-        required: true
-        description: "A valid access_token (e.g.: authorization: Bearer access-token-value)."
-        schema:
-          type: string
     post:
-      summary: GET request using a valid access token
+      summary: Resource for the KBV API
+      description: >-
+        This API is expected to be called by the IPV core backend directly as the
+        final part of the OpenId/Oauth Flow
+      parameters:
+        - in: header
+          name: Authorization
+          description: "A valid access_token (e.g.: Authorization: Bearer access-token-value)."
+          schema:
+            type: string
+            format: string
+          required: true
+          examples:
+            example1:
+              summary: "HTTP 200"
+              value: "Bearer d035dbfb-64a4-4cb6-940d-f0a3d0953363"
+            example2:
+              summary: "HTTP 400"
+              value: "Bearer bad400"
+            example3:
+              summary: "HTTP 500"
+              value: "Bearer bad500"
       responses:
         "200":
           description: 200 Ok

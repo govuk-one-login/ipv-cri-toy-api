@@ -18,10 +18,23 @@ resources:
 
   - method: POST
     path: /session
-    requestHeaders:
-      X-Forwarded-For: "192.168.1.1"
+    requestBody:
+      jsonPath: $.client_id
+      value: "ipv-core-stub"
     response:
       statusCode: 400
+
+  - method: POST
+    path: /session
+    requestHeaders:
+      X-Forwarded-For: "10.0.0.1"
+    response:
+      statusCode: 400
+
+  - method: POST
+    path: /session
+    response:
+      statusCode: 500
 
   - method: POST
     path: /session
@@ -44,8 +57,6 @@ resources:
 
   - method: GET
     path: /authorization
-    requestHeaders:
-      session-id: "bad500"
     response:
       statusCode: 500
 
@@ -56,6 +67,16 @@ resources:
     requestBody:
       jsonPath: $.toy
       value: "jigsaw-puzzle"
+    response:
+      statusCode: 200
+
+  - method: POST
+    path: /favourite
+    requestHeaders:
+      session-id: "01fba232-d6c8-4bc5-a241-528f4a5b50f6"
+    requestBody:
+      jsonPath: $.toy
+      value: "train-set"
     response:
       statusCode: 200
 
