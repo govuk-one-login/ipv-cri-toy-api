@@ -33,6 +33,13 @@ resources:
 
   - method: POST
     path: /session
+    requestHeaders:
+      X-Forwarded-For: "111111"
+    response:
+      statusCode: 500
+
+  - method: POST
+    path: /session
     response:
       statusCode: 500
 

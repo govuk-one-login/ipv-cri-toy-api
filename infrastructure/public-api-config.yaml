@@ -46,3 +46,8 @@ resources:
       Authorization: "Bearer bad500"
     response:
       statusCode: 500
+
+  - method: POST
+    path: /credential/issue
+    response:
+      statusCode: 500

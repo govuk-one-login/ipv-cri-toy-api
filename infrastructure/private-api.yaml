@@ -52,6 +52,9 @@ paths:
             example2:
               summary: "HTTP 400"
               value: "10.0.0.1"
+            example3:
+              summary: "HTTP 500"
+              value: "111111"
       requestBody:
         content:
           application/json:
