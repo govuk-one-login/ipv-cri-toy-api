@@ -43,7 +43,8 @@ paths:
           name: X-Forwarded-For
           schema:
             type: string
-            format: uuid
+            format: string
+            example: "192.168.1.1"
           required: true
       requestBody:
         content:
@@ -125,6 +126,7 @@ components:
       required: true
       schema:
         type: "string"
+        example: "01fba232-d6c8-4bc5-a241-528f4a5b50f6"
   schemas:
     Authorization:
       required:
@@ -135,7 +137,7 @@ components:
         client_id:
           type: "string"
           minLength: 1
-          example: "ipv-core-stub"
+          example: "ipv-toy-stub"
         request:
           type: "string"
     AuthorizationResponse:
@@ -161,6 +163,7 @@ components:
       properties:
         toy:
           type: "string"
+          example: "jigsaw-puzzle"
 
     Error:
       title: "Error Schema"
@@ -175,6 +178,7 @@ components:
       properties:
         session_id:
           type: "string"
+          example: "01fba232-d6c8-4bc5-a241-528f4a5b50f6"
 
 x-amazon-apigateway-request-validators:
   Validate both:

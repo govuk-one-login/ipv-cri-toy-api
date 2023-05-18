@@ -138,6 +138,7 @@ components:
         access_token:
           type: string
           description: The Access Token for the given token request
+          example: "d035dbfb-64a4-4cb6-940d-f0a3d0953363"
         token_type:
           type: string
           description: The Token Type issued
