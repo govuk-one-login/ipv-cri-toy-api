@@ -1,0 +1,74 @@
+plugin: openapi
+specFile: ./private-api.yaml
+
+validation:
+  request: log
+
+resources:
+
+  - method: POST
+    path: /session
+    requestBody:
+      jsonPath: $.client_id
+      value: "ipv-toy-stub"
+    requestHeaders:
+      X-Forwarded-For: "192.168.1.1"
+    response:
+      statusCode: 201
+
+  - method: POST
+    path: /session
+    requestHeaders:
+      X-Forwarded-For: "192.168.1.1"
+    response:
+      statusCode: 400
+
+  - method: POST
+    path: /session
+    response:
+      statusCode: 500
+
+  - method: GET
+    path: /authorization
+    requestHeaders:
+      session-id: "01fba232-d6c8-4bc5-a241-528f4a5b50f6"
+    response:
+      statusCode: 200
+
+  - method: GET
+    path: /authorization
+    requestHeaders:
+      session-id: "bad400"
+    response:
+      statusCode: 400
+
+  - method: GET
+    path: /authorization
+    requestHeaders:
+      session-id: "bad500"
+    response:
+      statusCode: 500
+
+  - method: POST
+    path: /favourite
+    requestHeaders:
+      session-id: "01fba232-d6c8-4bc5-a241-528f4a5b50f6"
+    requestBody:
+      jsonPath: $.toy
+      value: "jigsaw-puzzle"
+    response:
+      statusCode: 200
+
+  - method: POST
+    path: /favourite
+    requestHeaders:
+      session-id: "01fba232-d6c8-4bc5-a241-528f4a5b50f6"
+    response:
+      statusCode: 404
+
+  - method: POST
+    path: /favourite
+    requestHeaders:
+      session-id: bad500
+    response:
+      statusCode: 500
