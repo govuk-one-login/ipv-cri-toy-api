@@ -31,7 +31,6 @@ paths:
                 client_assertion:
                   type: "string"
                   pattern: "[a-zA-Z0-9_=]+\\.[a-zA-Z0-9_=]+\\.[a-zA-Z0-9_\\-\\+\\/=]+"
-                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0dCIsImlhdCI6MTUxNjIzOTAyMn0.SbcN-ywpLObhMbbaMCtW1Un8LYhQzHsEth9LvTk4oQQ"
                 redirect_uri:
                   type: "string"
                   format: "uri"
@@ -140,7 +139,6 @@ paths:
                 type: string
                 format: application/jwt
                 pattern: ^([a-zA-Z0-9_=]+)\.([a-zA-Z0-9_=]+)\.([a-zA-Z0-9_\-\+\/=]+)$
-                example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
         "400":
           description: 400 Bad Response
           content:
@@ -183,7 +181,6 @@ components:
         access_token:
           type: string
           description: The Access Token for the given token request
-          example: "d035dbfb-64a4-4cb6-940d-f0a3d0953363"
         token_type:
           type: string
           description: The Token Type issued
