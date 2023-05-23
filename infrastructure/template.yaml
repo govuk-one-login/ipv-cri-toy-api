@@ -411,7 +411,7 @@ Resources:
           - lambdas/issue-credential/src/issue-credential-handler.ts
         External:
           - "@aws-sdk/*"
-  
+
   IssueCredentialPermission:
     Type: AWS::Lambda::Permission
     Properties:
