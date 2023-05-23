@@ -15,6 +15,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthorizationResponse"
+              examples:
+                scenario-1:
+                  summary: "Complete happy path (Scenario 1)"
+                  value:
+                    code: "scenario-1"
+                    state: "state"
+                    redirect_uri: "https://di-ipv-core-stub.london.cloudapps.digital/callback"
+                scenario-2:
+                  summary: "Partial happy path (Scenario 2)"
+                  value:
+                    code: "scenario-2"
+                    state: "state"
+                    redirect_uri: "https://di-ipv-core-stub.london.cloudapps.digital/callback"
+                scenario-3:
+                  summary: "Partial happy path (Scenario 3)"
+                  value:
+                    code: "scenario-3"
+                    state: "state"
+                    redirect_uri: "https://di-ipv-core-stub.london.cloudapps.digital/callback"
         "400":
           description: "400 response"
           content:
@@ -44,36 +63,28 @@ paths:
           schema:
             type: string
             format: string
-          required: true
-          examples:
-            example1:
-              summary: "HTTP 201"
-              value: "192.168.1.1"
-            example2:
-              summary: "HTTP 400"
-              value: "10.0.0.1"
-            example3:
-              summary: "HTTP 500"
-              value: "111111"
+          required: false
       requestBody:
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/Authorization"
             examples:
-              example1:
-                summary: 201 path
-                value:
-                  client_id: "ipv-toy-stub"
-                  request: "string"
-              example2:
-                summary: 400 path
-                value:
-                  client_id: "ipv-core-stub"
-                  request: "string"
-              example3:
-                summary: 500 path
-                value:
+              scenario-1:
+                description: Scenario 1 Happy path
+                value: scenario-1-happy
+              scenario-1-400:
+                description: 400 at auth
+                value: scenario-1-auth-400
+              scenario-1-500:
+                description: 500 at auth
+                value: scenario-1-auth-500
+              scenario-2:
+                description: Scenario 2
+                value: scenario-2
+              scenario-3:
+                description: Scenario 3
+                value: scenario-3
         required: true
       responses:
         "400":
@@ -94,6 +105,40 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Session"
+              examples:
+                session-s1-good:
+                  summary: "Good session > Good auth > Good token > Good CI (Scenario 1)"
+                  value:
+                    session_id: "scenario-1"
+
+                session-s1-auth-400:
+                  summary: "Good session > Bad auth 400 (Scenario 1)"
+                  value:
+                    session_id: "scenario-1-400"
+
+                session-s1-auth-500:
+                  summary: "Good session > Bad auth 500 (Scenario 1)"
+                  value:
+                    session_id: "scenario-1-500"
+
+                session-s2:
+                  summary: "Good session > Good auth > Bad token (Scenario 2)"
+                  value:
+                    session_id: "scenario-2"
+
+                session-s3:
+                  summary: "Good session > Good auth > Good token > Bad CI (Scenario 2)"
+                  value:
+                    session_id: "scenario-3"
+
+                sessionSuccessTowardsBadAuth400:
+                  summary: "Good session > Bad auth 400 (Scenario 1)"
+                  value:
+                    session_id: "bad400"
+                sessionSuccessTowardsBadAuth500:
+                  summary: "Good session > Bad auth 500 (Scenario 1)"
+                  value:
+                    session_id: "bad500"
       x-amazon-apigateway-request-validator: "Validate both"
       x-amazon-apigateway-integration:
         httpMethod: "POST"
@@ -158,6 +203,7 @@ paths:
         type: "aws_proxy"
 
 components:
+
   parameters:
     SessionHeader:
       name: session-id
@@ -166,7 +212,16 @@ components:
       required: true
       schema:
         type: "string"
-        example: "01fba232-d6c8-4bc5-a241-528f4a5b50f6"
+      examples:
+        session-s1-good:
+          value: scenario-1
+        session-s1-auth-400:
+          value: scenario-1-400
+        session-s1-auth-500:
+          value: scenario-1-500
+        scenario-3:
+          value: scenario-3
+
   schemas:
     Authorization:
       required:
@@ -218,7 +273,6 @@ components:
       properties:
         session_id:
           type: "string"
-          example: "01fba232-d6c8-4bc5-a241-528f4a5b50f6"
 
 x-amazon-apigateway-request-validators:
   Validate both:

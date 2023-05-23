@@ -37,26 +37,26 @@ paths:
                   format: "uri"
                   example: "https://di-ipv-core-stub.london.cloudapps.digital/callback"
             examples:
-              example1:
-                summary: 201 path
+              scenario-1:
+                summary: Scenario 1 happy
                 value:
                   grant_type: "string"
-                  code: "981bb74c-3b5e-462e-ba3a-abf868e5da68"
+                  code: "scenario-1"
                   client_assertion_type: "string"
                   client_assertion: "string"
                   redirect_uri: "https://di-ipv-core-stub.london.cloudapps.digital/callback"
-              example2:
-                summary: 400 path
+              scenario-2:
+                summary: Scenario 2
                 value:
                   grant_type: "string"
-                  code: "bad400"
+                  code: "scenario-2"
                   client_assertion_type: "string"
                   client_assertion: "string"
                   redirect_uri: "https://di-ipv-core-stub.london.cloudapps.digital/callback"
-              example3:
-                summary: 500 path
+              scenario-3:
+                summary: Scenario 3
                 value:
-                  grant_type: "string"
+                  grant_type: "scenario-3"
                   code: "string"
                   client_assertion_type: "string"
                   client_assertion: "string"
@@ -68,6 +68,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TokenResponse"
+              examples:
+                scenario-1:
+                  value:
+                    access_token: "scenario-1"
+                    token_type: "Bearer"
+                    expires_in: "3600"
+                    refresh_token: "string"
+                scenario-3:
+                  value:
+                    access_token: "scenario-3"
+                    token_type: "Bearer"
+                    expires_in: "3600"
+                    refresh_token: "string"
         "400":
           description: "400 response"
           content:
@@ -112,15 +125,12 @@ paths:
             format: string
           required: true
           examples:
-            example1:
-              summary: "HTTP 200"
-              value: "Bearer d035dbfb-64a4-4cb6-940d-f0a3d0953363"
-            example2:
-              summary: "HTTP 400"
-              value: "Bearer bad400"
-            example3:
-              summary: "HTTP 500"
-              value: "Bearer bad500"
+            scenario-1:
+              summary: "Scenario 1 happy"
+              value: "scenario-1"
+            scenario-3:
+              summary: "Scenario 3"
+              value: "scenario-3"
       responses:
         "200":
           description: 200 Ok
