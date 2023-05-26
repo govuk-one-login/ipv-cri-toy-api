@@ -1,0 +1,60 @@
+plugin: openapi
+specFile: ./public-api.yaml
+
+validation:
+  request: log
+
+resources:
+  - method: POST
+    path: /token
+    formParams:
+      code: "1fbc5730-9d17-416d-b2ca-0be90e1e93f5"
+    response:
+      statusCode: 201
+      exampleName: 201
+
+  - method: POST
+    path: /token
+    formParams:
+      code: "fad21bea-bce9-4aa7-8889-d50c7d26616e"
+    response:
+      statusCode: 400
+
+  - method: POST
+    path: /token
+    formParams:
+      code: "f27b8afc-90ef-4e0f-83ad-00a2f5692590"
+    response:
+      statusCode: 500
+
+  - method: POST
+    path: /token
+    response:
+      statusCode: 500
+
+  - method: POST
+    path: /credential/issue
+    requestHeaders:
+      Authorization: "Bearer 1fbc5730-9d17-416d-b2ca-0be90e1e93f5"
+    response:
+      statusCode: 200
+      exampleName: 200
+
+  - method: POST
+    path: /credential/issue
+    requestHeaders:
+      Authorization: "Bearer fad21bea-bce9-4aa7-8889-d50c7d26616e"
+    response:
+      statusCode: 400
+
+  - method: POST
+    path: /credential/issue
+    requestHeaders:
+      Authorization: "Bearer f27b8afc-90ef-4e0f-83ad-00a2f5692590"
+    response:
+      statusCode: 500
+
+  - method: POST
+    path: /credential/issue
+    response:
+      statusCode: 500
