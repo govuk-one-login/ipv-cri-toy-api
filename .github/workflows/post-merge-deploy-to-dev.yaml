@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - OJ-1400-Deploy-FE-to-build-and-staging-using-secure-pipelines
 
 jobs:
   deploy:
