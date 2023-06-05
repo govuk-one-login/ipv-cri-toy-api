@@ -1,18 +1,17 @@
-name: Package for Build
+name: Deploy to Dev
 on:
   push:
     branches:
       - main
-      - OJ-1400-Deploy-FE-to-build-and-staging-using-secure-pipelines
 
 jobs:
   deploy:
-    name: Package for build
+    name: Deploy to dev
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
       AWS_REGION: eu-west-2
-      ENVIRONMENT: build
+      ENVIRONMENT: dev
     permissions:
       id-token: write
       contents: read
