@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+        "skipLibCheck": true,
+        "esModuleInterop": true,
+        "rootDir": "src",
+        "outDir": "dist"
+    },
+    "include": ["src/**/*"],
+     "exclude": ["node_modules/@types/lodash/common/common.d.ts"]
+}
