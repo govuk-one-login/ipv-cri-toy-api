@@ -24,6 +24,7 @@ import { SessionService } from "../../services/session-service";
 import { CommonConfigKey } from "../../types/config-keys";
 import { SessionItem } from "../../types/session-item";
 import { ToyItem } from "../../types/toy";
+import createAuthorizationCodeMiddleware from "../../middlewares/session/create-authorization-code-middleware";
 
 const dynamoDbClient = createClient(AwsClientType.DYNAMO) as DynamoDBDocument;
 const ssmClient = createClient(AwsClientType.SSM) as SSMClient;
@@ -34,7 +35,7 @@ export class FavouriteLambda implements LambdaInterface {
   public async handler(
     event: APIGatewayProxyEvent,
     _context: unknown
-  ): Promise<APIGatewayProxyResult | { statusCode: number }> {
+  ): Promise<APIGatewayProxyResult | undefined> {
     logger.info("Favourite lambda triggered");
     const sessionItem = event.body as unknown as SessionItem;
     const toyBody = event.body as unknown as ToyItem;
@@ -42,13 +43,13 @@ export class FavouriteLambda implements LambdaInterface {
       throw new SessionExpiredError();
     }
     const response = await this.callExternalToy(toyBody.toy);
-    if (response.status != 200) {
+    if (response.status !== 200) {
       throw new ToyNotFoundError(toyBody.toy);
     }
 
     toyBody.sessionId = sessionItem.sessionId;
     toyBody.status =
-      response.status == 200 ? "Authenticated" : "Not Authenticated";
+      response.status === 200 ? "Authenticated" : "Not Authenticated";
 
     return {
       statusCode: response.status,
@@ -90,6 +91,12 @@ export const lambdaHandler: Handler = middy(
   .use(getSessionByIdMiddleware({ sessionService: sessionService }))
   .use(
     saveToyMiddleware({
+      configService: configService,
+      dynamoDbClient: dynamoDbClient,
+    })
+  )
+  .use(
+    createAuthorizationCodeMiddleware({
       configService: configService,
       dynamoDbClient: dynamoDbClient,
     })
