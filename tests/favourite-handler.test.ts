@@ -1,12 +1,12 @@
 import { injectLambdaContext, Logger } from "@aws-lambda-powertools/logger";
 import { Metrics } from "@aws-lambda-powertools/metrics";
-import { DynamoDBDocument, PutCommand } from "@aws-sdk/lib-dynamodb";
-import middy from "@middy/core";
 import {
-  APIGatewayProxyEvent,
-  APIGatewayProxyEventHeaders,
-  Context,
-} from "aws-lambda";
+  DynamoDBDocument,
+  PutCommand,
+  UpdateCommand,
+} from "@aws-sdk/lib-dynamodb";
+import middy from "@middy/core";
+import { APIGatewayProxyEvent, Context } from "aws-lambda";
 import { ConfigService } from "../lambdas/common/config/config-service";
 import { FavouriteLambda } from "../lambdas/favourite/src/favourite-handler";
 import initialiseConfigMiddleware from "../lambdas/middlewares/config/initialise-config-middleware";
@@ -16,26 +16,31 @@ import setGovUkSigningJourneyIdMiddleware from "../lambdas/middlewares/session/s
 import saveToyMiddleware from "../lambdas/middlewares/toy/save-toy-middleware";
 import { SessionService } from "../lambdas/services/session-service";
 import { CommonConfigKey } from "../lambdas/types/config-keys";
+import createAuthorizationCodeMiddleware from "../lambdas/middlewares/session/create-authorization-code-middleware";
 
-jest.mock("@aws-sdk/lib-dynamodb", () => {
-  const mockPut = jest.fn();
-  mockPut.mockImplementation(() => {
-    return {
-      input: {
-        Item: {
-          sessionId: "test-session-id",
-          toy: "marbles",
-          status: "Authenticated",
-        },
+jest.mock("@aws-sdk/lib-dynamodb", () => ({
+  __esModule: true,
+  ...jest.requireActual("@aws-sdk/lib-dynamodb"),
+  PutCommand: jest.fn().mockImplementation(() => ({
+    input: {
+      Item: {
+        sessionId: "test-session-id",
+        toy: "marble-race",
+        status: "Authenticated",
       },
-    };
-  });
-  return {
-    __esModule: true,
-    ...jest.requireActual("@aws-sdk/lib-dynamodb"),
-    PutCommand: mockPut,
-  };
-}); //  this is so we only mock out the PutCommand
+    },
+  })),
+  UpdateCommand: jest.fn().mockImplementation(() => ({
+    TableName: "sessionTable",
+    Key: { sessionId: "6b0f3490-db8b-4803-967d-39d77a2ece21" },
+    UpdateExpression:
+      "SET authorizationCode=:authCode, authorizationCodeExpiryDate=:authCodeExpiry",
+    ExpressionAttributeValues: {
+      ":authCode": "d7c05e44-37e6-4ed4-b6d3-01af51a95f84",
+      ":authCodeExpiry": 0,
+    },
+  })),
+})); //  this is so we only mock out the PutCommand
 describe("favourite-handler.ts", () => {
   let favouriteLambda: FavouriteLambda;
   let lambdaHandler: middy.MiddyfiedHandler;
@@ -45,19 +50,11 @@ describe("favourite-handler.ts", () => {
   let sessionService: jest.MockedObjectDeep<typeof SessionService>;
   let dynamoDbClient: jest.MockedObjectDeep<typeof DynamoDBDocument>;
   let _putCommand: jest.MockedObjectDeep<typeof PutCommand>;
+  let _updateCommand: jest.MockedObjectDeep<typeof UpdateCommand>;
 
   const WEEK_IN_SECONDS = 7 * 24 * 60 * 60;
 
-  const mockEvent = {
-    body: JSON.stringify({
-      client_id: "toy-cri",
-      toy: "marbles",
-    }),
-    headers: {
-      ["x-forwarded-for"]: "test-client-ip-address",
-      ["session-id"]: "6b0f3490-db8b-4803-967d-39d77a2ece21",
-    } as APIGatewayProxyEventHeaders,
-  } as APIGatewayProxyEvent;
+  let mockEvent: APIGatewayProxyEvent;
 
   const getMockFetch = (code?: number) => {
     return jest.fn(() =>
@@ -72,12 +69,25 @@ describe("favourite-handler.ts", () => {
   };
 
   beforeEach(() => {
+    mockEvent = {
+      body: JSON.stringify({
+        client_id: "toy-cri",
+        toy: "marble-race",
+        status: "Authenticated",
+      }),
+      headers: {
+        ["x-forwarded-for"]: "test-client-ip-address",
+        ["session-id"]: "6b0f3490-db8b-4803-967d-39d77a2ece21",
+      },
+    } as unknown as APIGatewayProxyEvent;
+
     logger = jest.mocked(Logger);
     metrics = jest.mocked(Metrics);
     configService = jest.mocked(ConfigService);
     sessionService = jest.mocked(SessionService);
     dynamoDbClient = jest.mocked(DynamoDBDocument);
     _putCommand = jest.mocked(PutCommand);
+    _updateCommand = jest.mocked(UpdateCommand);
 
     favouriteLambda = new FavouriteLambda();
 
@@ -100,6 +110,12 @@ describe("favourite-handler.ts", () => {
       )
       .use(
         saveToyMiddleware({
+          configService: configService.prototype,
+          dynamoDbClient: dynamoDbClient.prototype,
+        })
+      )
+      .use(
+        createAuthorizationCodeMiddleware({
           configService: configService.prototype,
           dynamoDbClient: dynamoDbClient.prototype,
         })
@@ -127,7 +143,11 @@ describe("favourite-handler.ts", () => {
   });
 
   it("should return a status code of 200", async () => {
+    jest
+      .spyOn(configService.prototype, "getConfigEntry")
+      .mockReturnValue("sessionTable");
     const response = await lambdaHandler(mockEvent, {} as Context);
+
     expect(response.statusCode).toBe(200);
   });
 
@@ -135,10 +155,10 @@ describe("favourite-handler.ts", () => {
     const mockFetch = getMockFetch();
     global.fetch = mockFetch;
     const response = await lambdaHandler(mockEvent, {} as Context);
-    expect(mockFetch).toHaveBeenCalledWith("third/party/API/marbles", {
+    expect(mockFetch).toHaveBeenCalledWith("third/party/API/marble-race", {
       method: "GET",
     });
-    expect(response.statusCode).toEqual(200);
+    expect(response.statusCode).toBe(200);
   });
 
   it("should error if the session has expired", async () => {
@@ -154,6 +174,10 @@ describe("favourite-handler.ts", () => {
 
   it("should error if the external toy API does not accept the toy", async () => {
     global.fetch = getMockFetch(404);
+    mockEvent.body = JSON.stringify({
+      client_id: "toy-cri",
+      toy: "marbles",
+    });
     const response = await lambdaHandler(mockEvent, {} as Context);
     const errorBody = JSON.parse(response.body);
     expect(response.statusCode).toBe(404);
