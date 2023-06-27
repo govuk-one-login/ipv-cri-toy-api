@@ -1,29 +1,37 @@
-/* istanbul ignore file */
-import { LambdaInterface} from "@aws-lambda-powertools/commons";
+import console from "console";
+import {
+  APIGatewayProxyEvent,
+  APIGatewayProxyResult,
+  Context,
+} from "aws-lambda";
 import { Server } from "./server";
-import { APIGatewayProxyEvent, APIGatewayProxyResult, Handler } from "aws-lambda";
-import middy from "@middy/core";
-class Launcher implements LambdaInterface{
-   
-    public async handler(
-        _event: APIGatewayProxyEvent,
-        _context: unknown
-      ): Promise<APIGatewayProxyResult> {
-        handlerClass.startServer();
-        return
-      }
-    private server = new Server();
 
-    public startServer(){
-        this.server.startServer();
+let server: Server;
+
+export const startServer = async (
+  event: APIGatewayProxyEvent,
+  _context: Context
+): Promise<APIGatewayProxyResult> => {
+  try {
+    if (!server) {
+      server = new Server();
     }
-
-    public stopServer(){
-        this.server.stopServer();
-    }
-}
-
-const handlerClass = new Launcher();
-export const lambdaHandler: Handler = middy(
-    handlerClass.handler.bind(handlerClass)
-)
+    const { proxy: path } = event.pathParameters;
+    const result = await server.verifyToy(server.getRouteFromUrl(path));
+    return {
+      statusCode: result.state,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        state: result.state,
+        data: { ...result.data },
+      }),
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      statusCode: 500,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ error: "Internal Server Error" }),
+    };
+  }
+};

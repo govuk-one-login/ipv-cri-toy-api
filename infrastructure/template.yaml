@@ -479,6 +479,93 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${FavouriteFunction}"
       RetentionInDays: 30
+  ####################################################################
+  #                                                                  #
+  # Toy External API                                                  #
+  #                                                                  #
+  ####################################################################
+
+  ToyExternalApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.startServer
+      CodeUri: ../
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: "node18"
+        Sourcemap: true # Enabling source maps will create the required NODE_OPTIONS environment variables on your lambda function during sam build
+        EntryPoints:
+          - toy_external_api/src/app/app.ts
+
+  # Function permissions grant an AWS service or another account permission to use a function
+  ToyExternalApiPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      Principal: apigateway.amazonaws.com
+      FunctionName: !GetAtt ToyExternalApiFunction.Arn
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ToyExternalApi}/*'
+
+  ToyExternalApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: ToyExternalApi
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - GET
+        AllowHeaders:
+          - "*"
+
+  ToyExternalHttpApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ToyExternalApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub
+        - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations
+        - LambdaFunctionArn: !GetAtt ToyExternalApiFunction.Arn
+      PayloadFormatVersion: "2.0"
+
+  MyRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ToyExternalApi
+      RouteKey: ANY /{proxy+}
+      Target: !Join
+        - "/"
+        - - integrations
+          - !Ref ToyExternalHttpApiIntegration
+
+  ToyExternalApiFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ToyExternalApiFunction}"
+      RetentionInDays: 30
+
+  ToyExternalApiPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt ToyExternalApiFunction.Arn
+      Principal: apigateway.amazonaws.com
+
+  ToyExternalApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref ToyExternalApi
+      StageName: !Ref Environment
+      AutoDeploy: true
+
+  ####################################################################
+  #                                                                  #
+  # End of Toy External API                                                 #
+  #                                                                  #
+  ####################################################################
 
   FavouriteFunctionLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
@@ -778,3 +865,8 @@ Outputs:
     Value: !Sub "${PublicToyApi}"
     Export:
       Name: !Sub ${AWS::StackName}-ToyApiGatewayId
+  ToyExternApiUrl:
+    Value: !GetAtt ToyExternalApi.ApiEndpoint
+    Description: URL of the HTTP API
+    Export:
+      Name: !Sub ${AWS::StackName}-ToyExternalApi
