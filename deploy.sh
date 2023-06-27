@@ -2,7 +2,7 @@
 set -e
 
 stack_name="$1"
-common_stack_name="${2:-common-cri-api}"
+common_stack_name="${2:-common-cri-api-local}"
 secret_prefix="${3:-toy-cri-api}"
 
 if [ -z "$stack_name" ]
@@ -18,7 +18,7 @@ sam deploy --stack-name "$stack_name" \
    --no-confirm-changeset \
    --resolve-s3 \
    --region eu-west-2 \
-   --capabilities CAPABILITY_IAM \
+   --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
    --parameter-overrides \
    CodeSigningEnabled=false \
    Environment=dev \
