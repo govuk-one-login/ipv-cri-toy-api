@@ -49,16 +49,30 @@ export class FavouriteLambda implements LambdaInterface {
       throw new SessionExpiredError();
     }
 
-    const auditEventContext = this.createAuditEventContext(sessionItem);
+    const auditEventContext = this.createAuditEventContext(
+      sessionItem,
+      toyBody.toy
+    );
 
     await this.auditService.sendAuditEvent(
       AuditEventType.REQUEST_SENT,
       auditEventContext
     );
     const response = await this.callExternalToy(toyBody.toy);
+
+    const toyResponse =
+      (response.status !== 200 ? "ToyNotFoundError: " : "Toy found: ") +
+      response.status;
+    const receivedContext = {
+      ...auditEventContext,
+      extensions: {
+        toy: toyBody.toy,
+        toyResponse: toyResponse,
+      },
+    };
     await this.auditService.sendAuditEvent(
       AuditEventType.RESPONSE_RECEIVED,
-      auditEventContext
+      receivedContext
     );
 
     if (response.status !== 200) {
@@ -85,7 +99,10 @@ export class FavouriteLambda implements LambdaInterface {
     });
   }
 
-  private createAuditEventContext(sessionItem: SessionItem): AuditEventContext {
+  private createAuditEventContext(
+    sessionItem: SessionItem,
+    toy: string
+  ): AuditEventContext {
     return {
       sessionItem: {
         sessionId: sessionItem.sessionId,
@@ -94,6 +111,9 @@ export class FavouriteLambda implements LambdaInterface {
         clientSessionId: sessionItem.clientSessionId,
       },
       clientIpAddress: sessionItem.clientIpAddress,
+      extensions: {
+        toy: toy,
+      },
     };
   }
 }

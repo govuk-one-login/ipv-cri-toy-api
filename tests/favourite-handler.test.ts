@@ -208,6 +208,9 @@ describe("favourite-handler.ts", () => {
         clientSessionId: "7c852b9d-4c9a-42be-b3cc-c84f87f2cd2b",
       },
       clientIpAddress: "00.00.00",
+      extensions: {
+        toy: "marble-race",
+      },
     };
 
     await lambdaHandler(mockEvent, {} as Context);
@@ -217,9 +220,37 @@ describe("favourite-handler.ts", () => {
       AuditEventType.REQUEST_SENT,
       expectedAuditEventContext
     );
-    expect(spy).toHaveBeenCalledWith(
-      AuditEventType.RESPONSE_RECEIVED,
-      expectedAuditEventContext
-    );
+    expect(spy).toHaveBeenCalledWith(AuditEventType.RESPONSE_RECEIVED, {
+      ...expectedAuditEventContext,
+      extensions: {
+        toy: "marble-race",
+        toyResponse: "Toy found: 200",
+      },
+    });
+  });
+
+  it("should send the correct toy api response to txma", async () => {
+    const mockFetch = getMockFetch(404);
+    global.fetch = mockFetch;
+    const spy = jest.spyOn(auditService.prototype, "sendAuditEvent");
+    const expectedAuditEventContext: AuditEventContext = {
+      sessionItem: {
+        subject: "test-subject",
+        sessionId: "6b0f3490-db8b-4803-967d-39d77a2ece21",
+        persistentSessionId: "5ef1af56-34cd-4572-87eb-6c1184624eaf",
+        clientSessionId: "7c852b9d-4c9a-42be-b3cc-c84f87f2cd2b",
+      },
+      clientIpAddress: "00.00.00",
+    };
+
+    await lambdaHandler(mockEvent, {} as Context);
+
+    expect(spy).toHaveBeenCalledWith(AuditEventType.RESPONSE_RECEIVED, {
+      ...expectedAuditEventContext,
+      extensions: {
+        toy: "marble-race",
+        toyResponse: "ToyNotFoundError: 404",
+      },
+    });
   });
 });
