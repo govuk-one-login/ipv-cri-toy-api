@@ -25,13 +25,21 @@ import { CommonConfigKey } from "../../types/config-keys";
 import { SessionItem } from "../../types/session-item";
 import { ToyItem } from "../../types/toy";
 import createAuthorizationCodeMiddleware from "../../middlewares/session/create-authorization-code-middleware";
+import { AuditService } from "../../common/services/audit-service";
+import { SQSClient } from "@aws-sdk/client-sqs";
+import { AuditEventContext, AuditEventType } from "../../types/audit-event";
 
 const dynamoDbClient = createClient(AwsClientType.DYNAMO) as DynamoDBDocument;
 const ssmClient = createClient(AwsClientType.SSM) as SSMClient;
+const sqsClient = createClient(AwsClientType.SQS) as SQSClient;
 const FAVOURITE_METRIC = "favourite_selected";
 const TOY_API_URL = process.env.TOY_API_URL;
 
 export class FavouriteLambda implements LambdaInterface {
+  constructor(
+    private readonly auditService: AuditService,
+  ) {}
+
   public async handler(
     event: APIGatewayProxyEvent,
     _context: unknown
@@ -42,7 +50,13 @@ export class FavouriteLambda implements LambdaInterface {
     if (sessionService.hasDateExpired(sessionItem.expiryDate)) {
       throw new SessionExpiredError();
     }
+
+    const auditEventContext = this.createAuditEventContext(sessionItem);
+
+    await this.auditService.sendAuditEvent(AuditEventType.REQUEST_SENT, auditEventContext);
     const response = await this.callExternalToy(toyBody.toy);
+    await this.auditService.sendAuditEvent(AuditEventType.THIRD_PARTY_REQUEST_ENDED, auditEventContext);
+
     if (response.status !== 200) {
       throw new ToyNotFoundError(toyBody.toy);
     }
@@ -62,15 +76,30 @@ export class FavouriteLambda implements LambdaInterface {
 
   private async callExternalToy(toy: string): Promise<Response> {
     logger.info("Calling external toy API");
-    return await fetch(TOY_API_URL + "/" + toy, {
+    return fetch(TOY_API_URL + "/" + toy, {
       method: "GET",
-    });
+    }).then(response => response.json());
+  }
+
+  private createAuditEventContext(sessionItem: SessionItem): AuditEventContext {
+    return {
+      sessionItem: {
+        sessionId: sessionItem.sessionId,
+        subject: sessionItem.subject,
+        persistentSessionId: sessionItem.persistentSessionId,
+        clientSessionId: sessionItem.clientSessionId
+      },
+      clientIpAddress: sessionItem.clientIpAddress
+    };
   }
 }
 
-const handlerClass = new FavouriteLambda();
+
 const configService = new ConfigService(ssmClient);
+const auditService = new AuditService(() => configService.getAuditConfig(), sqsClient);
 const sessionService = new SessionService(dynamoDbClient, configService);
+
+const handlerClass = new FavouriteLambda(auditService);
 
 export const lambdaHandler: Handler = middy(
   handlerClass.handler.bind(handlerClass)
@@ -85,7 +114,7 @@ export const lambdaHandler: Handler = middy(
   .use(
     initialiseConfigMiddleware({
       configService: configService,
-      config_keys: [CommonConfigKey.SESSION_TABLE_NAME],
+      config_keys: [CommonConfigKey.SESSION_TABLE_NAME, CommonConfigKey.VC_ISSUER],
     })
   )
   .use(getSessionByIdMiddleware({ sessionService: sessionService }))

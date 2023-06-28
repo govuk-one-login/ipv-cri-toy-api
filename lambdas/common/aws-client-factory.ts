@@ -2,6 +2,7 @@ import { SSMClient } from "@aws-sdk/client-ssm";
 import { fromEnv } from "@aws-sdk/credential-providers";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
+import { SQSClient } from "@aws-sdk/client-sqs";
 
 const awsRegion = process.env["AWS_REGION"];
 const createDynamoDbClient = () => {
@@ -28,6 +29,7 @@ const createDynamoDbClient = () => {
 export const enum AwsClientType {
   DYNAMO,
   SSM,
+  SQS
 }
 export const createClient = (clientType: AwsClientType) => {
   switch (clientType) {
@@ -35,6 +37,8 @@ export const createClient = (clientType: AwsClientType) => {
       return new SSMClient({ region: awsRegion, credentials: fromEnv() });
     case AwsClientType.DYNAMO:
       return createDynamoDbClient();
+    case AwsClientType.SQS:
+        return new SQSClient({ region: awsRegion, credentials: fromEnv() });
     default:
       throw new Error(`Unexpected aws client type encountered: ${clientType}`);
   }
