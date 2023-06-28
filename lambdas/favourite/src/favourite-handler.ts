@@ -36,9 +36,7 @@ const FAVOURITE_METRIC = "favourite_selected";
 const TOY_API_URL = process.env.TOY_API_URL;
 
 export class FavouriteLambda implements LambdaInterface {
-  constructor(
-    private readonly auditService: AuditService,
-  ) {}
+  constructor(private readonly auditService: AuditService) {}
 
   public async handler(
     event: APIGatewayProxyEvent,
@@ -53,9 +51,15 @@ export class FavouriteLambda implements LambdaInterface {
 
     const auditEventContext = this.createAuditEventContext(sessionItem);
 
-    await this.auditService.sendAuditEvent(AuditEventType.REQUEST_SENT, auditEventContext);
+    await this.auditService.sendAuditEvent(
+      AuditEventType.REQUEST_SENT,
+      auditEventContext
+    );
     const response = await this.callExternalToy(toyBody.toy);
-    await this.auditService.sendAuditEvent(AuditEventType.THIRD_PARTY_REQUEST_ENDED, auditEventContext);
+    await this.auditService.sendAuditEvent(
+      AuditEventType.THIRD_PARTY_REQUEST_ENDED,
+      auditEventContext
+    );
 
     if (response.status !== 200) {
       throw new ToyNotFoundError(toyBody.toy);
@@ -87,16 +91,18 @@ export class FavouriteLambda implements LambdaInterface {
         sessionId: sessionItem.sessionId,
         subject: sessionItem.subject,
         persistentSessionId: sessionItem.persistentSessionId,
-        clientSessionId: sessionItem.clientSessionId
+        clientSessionId: sessionItem.clientSessionId,
       },
-      clientIpAddress: sessionItem.clientIpAddress
+      clientIpAddress: sessionItem.clientIpAddress,
     };
   }
 }
 
-
 const configService = new ConfigService(ssmClient);
-const auditService = new AuditService(() => configService.getAuditConfig(), sqsClient);
+const auditService = new AuditService(
+  () => configService.getAuditConfig(),
+  sqsClient
+);
 const sessionService = new SessionService(dynamoDbClient, configService);
 
 const handlerClass = new FavouriteLambda(auditService);
@@ -114,7 +120,10 @@ export const lambdaHandler: Handler = middy(
   .use(
     initialiseConfigMiddleware({
       configService: configService,
-      config_keys: [CommonConfigKey.SESSION_TABLE_NAME, CommonConfigKey.VC_ISSUER],
+      config_keys: [
+        CommonConfigKey.SESSION_TABLE_NAME,
+        CommonConfigKey.VC_ISSUER,
+      ],
     })
   )
   .use(getSessionByIdMiddleware({ sessionService: sessionService }))

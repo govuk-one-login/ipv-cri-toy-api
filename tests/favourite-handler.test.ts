@@ -18,7 +18,10 @@ import { SessionService } from "../lambdas/services/session-service";
 import { CommonConfigKey } from "../lambdas/types/config-keys";
 import createAuthorizationCodeMiddleware from "../lambdas/middlewares/session/create-authorization-code-middleware";
 import { AuditService } from "../lambdas/common/services/audit-service";
-import { AuditEventContext, AuditEventType } from "../lambdas/types/audit-event";
+import {
+  AuditEventContext,
+  AuditEventType,
+} from "../lambdas/types/audit-event";
 
 jest.mock("@aws-sdk/lib-dynamodb", () => ({
   __esModule: true,
@@ -88,7 +91,7 @@ describe("favourite-handler.ts", () => {
     metrics = jest.mocked(Metrics);
     configService = jest.mocked(ConfigService);
     sessionService = jest.mocked(SessionService);
-    auditService = jest.mocked(AuditService)
+    auditService = jest.mocked(AuditService);
     dynamoDbClient = jest.mocked(DynamoDBDocument);
     _putCommand = jest.mocked(PutCommand);
     _updateCommand = jest.mocked(UpdateCommand);
@@ -136,9 +139,11 @@ describe("favourite-handler.ts", () => {
       clientIpAddress: "00.00.00",
       subject: "test-subject",
       persistentSessionId: "5ef1af56-34cd-4572-87eb-6c1184624eaf",
-      clientSessionId: "7c852b9d-4c9a-42be-b3cc-c84f87f2cd2b"
+      clientSessionId: "7c852b9d-4c9a-42be-b3cc-c84f87f2cd2b",
     });
-    jest.spyOn(auditService.prototype, "sendAuditEvent").mockReturnValue(new Promise((res) => res(null)));
+    jest
+      .spyOn(auditService.prototype, "sendAuditEvent")
+      .mockReturnValue(new Promise((res) => res(null)));
     jest.spyOn(metrics.prototype, "addMetric").mockImplementation();
     jest.spyOn(logger.prototype, "error").mockImplementation();
     jest.spyOn(dynamoDbClient.prototype, "send").mockImplementation();
@@ -200,7 +205,7 @@ describe("favourite-handler.ts", () => {
         subject: "test-subject",
         sessionId: "6b0f3490-db8b-4803-967d-39d77a2ece21",
         persistentSessionId: "5ef1af56-34cd-4572-87eb-6c1184624eaf",
-        clientSessionId: "7c852b9d-4c9a-42be-b3cc-c84f87f2cd2b"
+        clientSessionId: "7c852b9d-4c9a-42be-b3cc-c84f87f2cd2b",
       },
       clientIpAddress: "00.00.00",
     };
@@ -208,7 +213,13 @@ describe("favourite-handler.ts", () => {
     await lambdaHandler(mockEvent, {} as Context);
 
     expect(spy).toHaveBeenCalledTimes(2);
-    expect(spy).toHaveBeenCalledWith(AuditEventType.REQUEST_SENT, expectedAuditEventContext);
-    expect(spy).toHaveBeenCalledWith(AuditEventType.THIRD_PARTY_REQUEST_ENDED, expectedAuditEventContext);
-  })
+    expect(spy).toHaveBeenCalledWith(
+      AuditEventType.REQUEST_SENT,
+      expectedAuditEventContext
+    );
+    expect(spy).toHaveBeenCalledWith(
+      AuditEventType.THIRD_PARTY_REQUEST_ENDED,
+      expectedAuditEventContext
+    );
+  });
 });

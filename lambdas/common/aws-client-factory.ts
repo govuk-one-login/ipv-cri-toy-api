@@ -29,7 +29,7 @@ const createDynamoDbClient = () => {
 export const enum AwsClientType {
   DYNAMO,
   SSM,
-  SQS
+  SQS,
 }
 export const createClient = (clientType: AwsClientType) => {
   switch (clientType) {
@@ -38,7 +38,7 @@ export const createClient = (clientType: AwsClientType) => {
     case AwsClientType.DYNAMO:
       return createDynamoDbClient();
     case AwsClientType.SQS:
-        return new SQSClient({ region: awsRegion, credentials: fromEnv() });
+      return new SQSClient({ region: awsRegion, credentials: fromEnv() });
     default:
       throw new Error(`Unexpected aws client type encountered: ${clientType}`);
   }

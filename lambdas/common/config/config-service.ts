@@ -55,19 +55,21 @@ export class ConfigService {
   public getAuditConfig(): CriAuditConfig {
     const auditEventNamePrefix = process.env["SQS_AUDIT_EVENT_PREFIX"];
     if (!auditEventNamePrefix) {
-        throw new Error("Missing environment variable: SQS_AUDIT_EVENT_PREFIX");
+      throw new Error("Missing environment variable: SQS_AUDIT_EVENT_PREFIX");
     }
     const queueUrl = process.env["SQS_AUDIT_EVENT_QUEUE_URL"];
     if (!queueUrl) {
-        throw new Error("Missing environment variable: SQS_AUDIT_EVENT_QUEUE_URL");
+      throw new Error(
+        "Missing environment variable: SQS_AUDIT_EVENT_QUEUE_URL"
+      );
     }
     const issuer = this.getConfigEntry(CommonConfigKey.VC_ISSUER);
     return {
-        auditEventNamePrefix,
-        issuer,
-        queueUrl,
+      auditEventNamePrefix,
+      issuer,
+      queueUrl,
     };
-}
+  }
 
   private async getDefaultConfig(
     paramNameSuffixes: CommonConfigKey[]

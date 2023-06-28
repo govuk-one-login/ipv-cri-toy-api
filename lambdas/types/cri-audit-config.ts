@@ -1,5 +1,5 @@
 export interface CriAuditConfig {
-    queueUrl: string;
-    auditEventNamePrefix: string;
-    issuer: string;
+  queueUrl: string;
+  auditEventNamePrefix: string;
+  issuer: string;
 }
