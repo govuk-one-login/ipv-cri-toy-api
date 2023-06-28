@@ -78,7 +78,7 @@ export class FavouriteLambda implements LambdaInterface {
     logger.info("Calling external toy API");
     return fetch(TOY_API_URL + "/" + toy, {
       method: "GET",
-    }).then(response => response.json());
+    });
   }
 
   private createAuditEventContext(sessionItem: SessionItem): AuditEventContext {
