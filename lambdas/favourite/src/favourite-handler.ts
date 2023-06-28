@@ -57,7 +57,7 @@ export class FavouriteLambda implements LambdaInterface {
     );
     const response = await this.callExternalToy(toyBody.toy);
     await this.auditService.sendAuditEvent(
-      AuditEventType.THIRD_PARTY_REQUEST_ENDED,
+      AuditEventType.RESPONSE_RECEIVED,
       auditEventContext
     );
 

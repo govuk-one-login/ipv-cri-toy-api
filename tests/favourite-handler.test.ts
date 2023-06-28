@@ -218,7 +218,7 @@ describe("favourite-handler.ts", () => {
       expectedAuditEventContext
     );
     expect(spy).toHaveBeenCalledWith(
-      AuditEventType.THIRD_PARTY_REQUEST_ENDED,
+      AuditEventType.RESPONSE_RECEIVED,
       expectedAuditEventContext
     );
   });

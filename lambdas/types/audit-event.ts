@@ -5,7 +5,7 @@ export enum AuditEventType {
   REQUEST_RECEIVED = "REQUEST_RECEIVED", // A non-common request has been received
   REQUEST_SENT = "REQUEST_SENT", // When a third party call is started
   VC_ISSUED = "VC_ISSUED", // When the final VC is created in the issue credential lambda
-  THIRD_PARTY_REQUEST_ENDED = "THIRD_PARTY_REQUEST_ENDED", // When a third party requests are ended
+  RESPONSE_RECEIVED = "RESPONSE_RECEIVED", // When a third party requests are ended
   END = "END", // When VC credentials are being returned - final event
 }
 
