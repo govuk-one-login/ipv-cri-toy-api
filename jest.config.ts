@@ -25,4 +25,5 @@ export default {
   preset: "ts-jest",
   testEnvironment: "node",
   globalSetup: "<rootDir>/dotenv/dotenv-test.js",
+  setupFiles: ["<rootDir>/setEnvVars.js"],
 };
