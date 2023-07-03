@@ -4,7 +4,10 @@ export enum ChronoUnit {
   Hours = "hours",
   Days = "days",
 }
-
+export enum VC_CONTEXT {
+  W3_BASE_CONTEXT = "https://www.w3.org/2018/credentials/v1",
+  DI_CONTEXT = "https://vocab.london.cloudapps.digital/contexts/identity-v1.jsonld",
+}
 export type VerifiableCredential = {
   jti?: string;
   sub: string;
@@ -12,9 +15,9 @@ export type VerifiableCredential = {
   nbf: number;
   exp?: number;
   vc: {
-    type: string[];
-    credentialSubject: string;
-    "@context"?: undefined | string[];
-    evidence?: undefined | unknown;
+    type: Array<string>;
+    credentialSubject: unknown;
+    "@context"?: Array<string>;
+    evidence?: unknown;
   };
 };

@@ -5,31 +5,28 @@ import {
 } from "./types/verifiable-credentials";
 import { GetParameterCommand, Parameter, SSMClient } from "@aws-sdk/client-ssm";
 
-export enum ConfigKey {
+export enum ReleaseFlagKeys {
   CONTAINS_UNIQUE_ID = "release-flags/vc-contains-unique-id",
   EXPIRY_REMOVED = "/release-flags/vc-expiry-removed",
 }
 const PARAMETER_PREFIX = process.env.AWS_STACK_NAME || "";
+
 export class VerifiableCredentialBuilder {
   static ChronoUnit = ChronoUnit;
   constructor(
-    private ssmClient: SSMClient,
-    private ttl: number = 0,
-    private ttlUnit: ChronoUnit | undefined = undefined,
-    private credential: VerifiableCredential = {
+    private readonly ssmClient: SSMClient,
+    private readonly credential: VerifiableCredential = {
       sub: "",
       iss: "",
       nbf: 0,
       vc: {
-        type: [],
-        credentialSubject: "",
+        type: ["VerifiableCredential"],
+        credentialSubject: Object,
       },
-    } as VerifiableCredential
+    },
+    private ttl: number = 0,
+    private ttlUnit?: ChronoUnit
   ) {}
-
-  claims() {
-    return this.credential;
-  }
 
   subject(subject: string): VerifiableCredentialBuilder {
     if (!subject) throw new Error("The subject must not be null or empty.");
@@ -45,14 +42,11 @@ export class VerifiableCredentialBuilder {
     return this;
   }
 
-  timeToLive(
-    ttl: number,
-    unit: ChronoUnit | undefined
-  ): VerifiableCredentialBuilder {
+  timeToLive(unit: ChronoUnit, ttl?: number): VerifiableCredentialBuilder {
     if (!unit || !Object.values(ChronoUnit).includes(unit)) {
       throw new Error("ttlUnit must be valid");
     }
-    if (ttl <= 0) {
+    if (!ttl || ttl < 1) {
       throw new Error("ttl must be greater than zero");
     }
 
@@ -61,17 +55,18 @@ export class VerifiableCredentialBuilder {
     return this;
   }
 
-  verifiableCredentialType(types: Array<string>): VerifiableCredentialBuilder {
-    if (Array.isArray(types) && !types?.length)
+  verifiableCredentialType(type: string): VerifiableCredentialBuilder {
+    if (!type)
       throw new Error(
         "The VerifiableCredential type must not be null or empty."
       );
 
-    this.credential.vc.type = types;
+    this.credential.vc.type.push(type);
+    this.credential.vc.type = Array.from(new Set(this.credential.vc.type));
     return this;
   }
 
-  verifiableCredentialSubject(subject: string): VerifiableCredentialBuilder {
+  verifiableCredentialSubject(subject: unknown): VerifiableCredentialBuilder {
     if (!subject)
       throw new Error(
         "The VerifiableCredential subject must not be null or empty."
@@ -102,10 +97,19 @@ export class VerifiableCredentialBuilder {
 
   async build(): Promise<VerifiableCredential> {
     this.credential.nbf = Math.floor(new Date().getTime() / 1000);
+    const issuerParameter = await this.getParameter(
+      `/${process.env.COMMON_PARAMETER_NAME_PREFIX}/verifiable-credential/issuer`
+    );
+    const issuer = issuerParameter.Value;
+    if (!issuer)
+      throw new Error(
+        "An empty/null verifiable credential issuer was retrieved from configuration"
+      );
+    this.credential.iss = issuer;
     if (
       await this.isReleaseFlag(
         this.getParameter.bind(this),
-        ConfigKey.CONTAINS_UNIQUE_ID
+        ReleaseFlagKeys.CONTAINS_UNIQUE_ID
       )
     ) {
       this.credential.jti = this.generateUniqueId();
@@ -113,7 +117,7 @@ export class VerifiableCredentialBuilder {
     if (
       !(await this.isReleaseFlag(
         this.getParameter.bind(this),
-        ConfigKey.EXPIRY_REMOVED
+        ReleaseFlagKeys.EXPIRY_REMOVED
       ))
     ) {
       this.credential.exp =
@@ -136,15 +140,16 @@ export class VerifiableCredentialBuilder {
         throw new Error(`Unexpected time-to-live unit encountered: ${unit}`);
     }
   }
-  private generateUniqueId(): string {
-    return `urn:uuid:${randomUUID()}`;
-  }
 
   private async isReleaseFlag(
     parameterGetter: (arg: string) => Promise<Parameter>,
     flagParameterPath: string
   ): Promise<boolean> {
-    return (await parameterGetter(flagParameterPath)).Value === "true";
+    try {
+      return (await parameterGetter(flagParameterPath)).Value === "true";
+    } catch (error) {
+      return false;
+    }
   }
 
   private async getParameter(ssmParamName: string): Promise<Parameter> {
@@ -160,7 +165,10 @@ export class VerifiableCredentialBuilder {
     return getParamResult.Parameter;
   }
 
-  private isAnAbsolutePathParameter(ssmParameter: string): boolean {
-    return ssmParameter.startsWith("/");
-  }
+  public claims = () => this.credential;
+
+  private isAnAbsolutePathParameter = (ssmParameter: string): boolean =>
+    ssmParameter.startsWith("/");
+
+  private generateUniqueId = (): string => `urn:uuid:${randomUUID()}`;
 }
