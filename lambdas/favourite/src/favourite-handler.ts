@@ -62,37 +62,18 @@ export class FavouriteLambda implements LambdaInterface {
     const response = await this.callExternalToy(toyBody.toy);
 
     const statusCode = response.status;
-    const receivedContext = {
-      ...auditEventContext,
-      extensions: {
-        toy: toyBody.toy,
-        toyResponse: "",
-      },
-    };
 
     if (statusCode == 200) {
       const msg = `${toyBody.toy} found: received 200 response`;
-      receivedContext.extensions.toyResponse = msg;
-      await this.auditService.sendAuditEvent(
-        AuditEventType.RESPONSE_RECEIVED,
-        receivedContext
-      );
+      this.updateContextAndSendAuditEvent(msg, auditEventContext, toyBody.toy);
       logger.info(msg);
     } else if (statusCode == 404) {
       const msg = "ToyNotFoundError: received 404 response";
-      receivedContext.extensions.toyResponse = msg;
-      await this.auditService.sendAuditEvent(
-        AuditEventType.RESPONSE_RECEIVED,
-        receivedContext
-      );
+      this.updateContextAndSendAuditEvent(msg, auditEventContext, toyBody.toy);
       throw new ToyNotFoundError(toyBody.toy);
     } else {
       const msg = `Error: received ${statusCode} response - ${response.statusText}`;
-      receivedContext.extensions.toyResponse = msg;
-      await this.auditService.sendAuditEvent(
-        AuditEventType.RESPONSE_RECEIVED,
-        receivedContext
-      );
+      this.updateContextAndSendAuditEvent(msg, auditEventContext, toyBody.toy);
       throw new GenericServerError(msg);
     }
 
@@ -117,6 +98,24 @@ export class FavouriteLambda implements LambdaInterface {
     return fetch(TOY_API_URL + "/" + toy, {
       method: "GET",
     });
+  }
+
+  private async updateContextAndSendAuditEvent(
+    msg: string,
+    auditEventContext: AuditEventContext,
+    toy: string
+  ) {
+    const receivedContext = {
+      ...auditEventContext,
+      extensions: {
+        toy: toy,
+        toyResponse: msg,
+      },
+    };
+    await this.auditService.sendAuditEvent(
+      AuditEventType.RESPONSE_RECEIVED,
+      receivedContext
+    );
   }
 
   private createAuditEventContext(
