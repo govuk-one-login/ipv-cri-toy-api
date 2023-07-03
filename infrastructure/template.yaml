@@ -116,6 +116,14 @@ Globals:
         COMMON_PARAMETER_NAME_PREFIX: !Ref CommonStackName
 
 Mappings:
+  VcContainsUniqueIdMapping:
+    Environment:
+      dev: "true"
+      build: "true"
+      staging: "true"
+      integration: "false"
+      production: "false"
+
   MemorySizeMapping:
     Environment:
       dev: 512
@@ -347,8 +355,6 @@ Resources:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
         - DynamoDBReadPolicy:
             TableName: !Ref ToyTable
-        - DynamoDBReadPolicy:
-            TableName: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
         - Statement:
             Effect: Allow
             Action:
@@ -360,13 +366,14 @@ Resources:
             Effect: Allow
             Action:
               - ssm:GetParameter
+              - ssm:GetParameters
             Resource:
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/ToyTableName"
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/verifiableCredentialKmsSigningKeyId"
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/MaxJwtTtl"
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/JwtTtlUnit"
+              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/release-flags/vc-contains-unique-id"
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/SessionTableName"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/PersonIdentityTableName"
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/verifiable-credential/issuer"
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/toy-cri-api-v1/quality/mappings"
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/release-flags/vc-expiry-removed"
@@ -613,6 +620,15 @@ Resources:
       Type: String
       Value: !Sub "https://${PublicToyApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
       Description: "Base url of the public Toy CRI API"
+
+  ReleaseFlagsVcContainsUniqueIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/release-flags/vc-contains-unique-id"
+      Type: String
+      Value:
+        !FindInMap [VcContainsUniqueIdMapping, Environment, !Ref Environment]
+      Description: Verifiable Credential Contains UniqueId Mapping
 
   IssueCredentialFunctionPermission:
     Type: AWS::Lambda::Permission
