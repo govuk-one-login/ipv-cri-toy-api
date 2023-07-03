@@ -13,6 +13,7 @@ import { ConfigService } from "../../common/config/config-service";
 import {
   ToyNotFoundError,
   SessionExpiredError,
+  GenericServerError,
 } from "../../common/utils/errors";
 import { logger, metrics } from "../../common/utils/power-tool";
 import initialiseConfigMiddleware from "../../middlewares/config/initialise-config-middleware";
@@ -60,23 +61,39 @@ export class FavouriteLambda implements LambdaInterface {
     );
     const response = await this.callExternalToy(toyBody.toy);
 
-    const toyResponse =
-      (response.status !== 200 ? "ToyNotFoundError: " : "Toy found: ") +
-      response.status;
+    const statusCode = response.status;
     const receivedContext = {
       ...auditEventContext,
       extensions: {
         toy: toyBody.toy,
-        toyResponse: toyResponse,
+        toyResponse: "",
       },
     };
-    await this.auditService.sendAuditEvent(
-      AuditEventType.RESPONSE_RECEIVED,
-      receivedContext
-    );
 
-    if (response.status !== 200) {
+    if (statusCode == 200) {
+      const msg = `${toyBody.toy} found: received 200 response`;
+      receivedContext.extensions.toyResponse = msg;
+      await this.auditService.sendAuditEvent(
+        AuditEventType.RESPONSE_RECEIVED,
+        receivedContext
+      );
+      logger.info(msg);
+    } else if (statusCode == 404) {
+      const msg = "ToyNotFoundError: received 404 response";
+      receivedContext.extensions.toyResponse = msg;
+      await this.auditService.sendAuditEvent(
+        AuditEventType.RESPONSE_RECEIVED,
+        receivedContext
+      );
       throw new ToyNotFoundError(toyBody.toy);
+    } else {
+      const msg = `Error: received ${statusCode} response - ${response.statusText}`;
+      receivedContext.extensions.toyResponse = msg;
+      await this.auditService.sendAuditEvent(
+        AuditEventType.RESPONSE_RECEIVED,
+        receivedContext
+      );
+      throw new GenericServerError(msg);
     }
 
     toyBody.sessionId = sessionItem.sessionId;
@@ -93,6 +110,9 @@ export class FavouriteLambda implements LambdaInterface {
   }
 
   private async callExternalToy(toy: string): Promise<Response> {
+    if (!TOY_API_URL) {
+      throw new Error("Missing environment variable: TOY_API_URL");
+    }
     logger.info("Calling external toy API");
     return fetch(TOY_API_URL + "/" + toy, {
       method: "GET",

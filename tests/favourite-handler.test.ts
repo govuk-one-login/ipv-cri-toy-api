@@ -224,7 +224,7 @@ describe("favourite-handler.ts", () => {
       ...expectedAuditEventContext,
       extensions: {
         toy: "marble-race",
-        toyResponse: "Toy found: 200",
+        toyResponse: "marble-race found: received 200 response",
       },
     });
   });
@@ -249,7 +249,7 @@ describe("favourite-handler.ts", () => {
       ...expectedAuditEventContext,
       extensions: {
         toy: "marble-race",
-        toyResponse: "ToyNotFoundError: 404",
+        toyResponse: "ToyNotFoundError: received 404 response",
       },
     });
   });
