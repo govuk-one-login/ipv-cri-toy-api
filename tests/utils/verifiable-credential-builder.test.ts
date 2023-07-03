@@ -1,25 +1,16 @@
-import {
-  GetParameterCommand,
-  ParameterType,
-  SSMClient,
-} from "@aws-sdk/client-ssm";
-import { ChronoUnit } from "../../lambdas/verifiable-credential/types/verifiable-credentials";
-import {
-  ConfigKey,
-  VerifiableCredentialBuilder,
-} from "../../lambdas/verifiable-credential/verifiable-credential-builder";
-jest.mock("@aws-sdk/client-ssm", () => {
-  return {
-    __esModule: true,
-    ...jest.requireActual("@aws-sdk/client-ssm"),
-    GetParametersCommand: jest.fn(),
-    SSMClient: {
-      prototype: {
-        send: jest.fn(),
-      },
+import { ParameterType, SSMClient } from "@aws-sdk/client-ssm";
+import { ChronoUnit } from "../../lambdas/types/verifiable-credentials";
+import { VerifiableCredentialBuilder } from "../../lambdas/verifiable-credential/verifiable-credential-builder";
+jest.mock("@aws-sdk/client-ssm", () => ({
+  __esModule: true,
+  ...jest.requireActual("@aws-sdk/client-ssm"),
+  GetParametersCommand: jest.fn(),
+  SSMClient: {
+    prototype: {
+      send: jest.fn(),
     },
-  };
-});
+  },
+}));
 jest.mock("crypto", () => ({
   ...jest.requireActual("crypto"),
   randomUUID: () => "d7c05e44-37e6-4ed4-b6d3-01af51a95f84",
@@ -64,7 +55,7 @@ describe("verifiable-credential-builder.ts", () => {
       [VerifiableCredentialBuilder.ChronoUnit.Minutes],
       [VerifiableCredentialBuilder.ChronoUnit.Seconds],
     ])("should be set to supplied value '%s'", (ttlUnit) => {
-      builder.timeToLive(30, ttlUnit);
+      builder.timeToLive(ttlUnit, 30);
 
       expect(builder).toEqual(
         expect.objectContaining({ ttl: 30, ttlUnit: ttlUnit })
@@ -73,26 +64,23 @@ describe("verifiable-credential-builder.ts", () => {
 
     it("should throw an error for an invalid unit", () => {
       expect(() =>
-        builder.timeToLive(30, "invalid" as unknown as ChronoUnit)
+        builder.timeToLive("invalid" as unknown as ChronoUnit, 30)
       ).toThrow("ttlUnit must be valid");
     });
   });
   describe("verifiableCredentialType", () => {
     it("should be set to the value supplied", () => {
-      builder.verifiableCredentialType([
-        "VerifiableCredential",
-        "IdentityCheckCredential",
-      ]);
+      builder.verifiableCredentialType("ToyCredential");
 
       expect(builder.claims().vc.type).toEqual([
         "VerifiableCredential",
-        "IdentityCheckCredential",
+        "ToyCredential",
       ]);
     });
-    it("should not be '%s'", () => {
-      expect(() => builder.verifiableCredentialType([])).toThrow(
-        "The VerifiableCredential type must not be null or empty."
-      );
+    it.each([null, undefined, ""])("should not be '%s'", (type) => {
+      expect(() =>
+        builder.verifiableCredentialType(type as unknown as string)
+      ).toThrow("The VerifiableCredential type must not be null or empty.");
     });
   });
   describe("verifiableCredentialSubject", () => {
@@ -149,9 +137,6 @@ describe("verifiable-credential-builder.ts", () => {
     let evidence: Map<string, string>;
     const twentyOfJune2023InMs = 1687269570000;
     const thirtyMinutesInMs = 30 * 60 * 1000;
-    let getMockSend:
-      | ((value?: string | undefined) => jest.Mock<unknown, unknown[]>)
-      | ((arg1?: string | undefined) => jest.Mock);
     beforeEach(() => {
       process.env = {
         ...process.env,
@@ -162,150 +147,243 @@ describe("verifiable-credential-builder.ts", () => {
         ["evidence-key-1", "evidence-value-1"],
         ["evidence-key-2", "evidence-value-2"],
       ]);
-      jest.spyOn(Date, "now").mockReturnValueOnce(twentyOfJune2023InMs);
-      getMockSend = (value?: string) => {
-        return jest.fn().mockImplementation((command) => {
-          if (command instanceof GetParameterCommand) {
-            const parameterName =
-              command.input.Name === ConfigKey.CONTAINS_UNIQUE_ID
-                ? `/di-ipv-cri-toy-api/${ConfigKey.CONTAINS_UNIQUE_ID}`
-                : ConfigKey.EXPIRY_REMOVED;
-            return Promise.resolve({
-              Parameter: {
-                Name: parameterName,
-                Type: ParameterType.STRING,
-                Value: value ? value : "false",
-              },
-            });
-          }
-        });
-      };
-      mockSSMClient.prototype.send = getMockSend();
-      builder = new VerifiableCredentialBuilder(mockSSMClient.prototype);
       jest
         .spyOn(Date.prototype, "getTime")
         .mockReturnValueOnce(twentyOfJune2023InMs);
-    });
-    afterEach(() => jest.clearAllMocks());
-    it("should build", async () => {
-      const ttlDuration = 30;
-      await expect(
-        builder
-          .subject("Kenneth Decerqueira")
-          .issuer("an-issuer-for-toy")
-          .timeToLive(
-            ttlDuration,
-            VerifiableCredentialBuilder.ChronoUnit.Minutes
-          )
-          .verifiableCredentialType([
-            "VerifiableCredential",
-            "IdentityCheckCredential",
-          ])
-          .verifiableCredentialSubject("Kenneth Decerqueira")
-          .verifiableCredentialContext(contexts)
-          .verifiableCredentialEvidence(evidence)
-          .build()
-      ).resolves.toEqual({
-        sub: "Kenneth Decerqueira",
-        iss: "an-issuer-for-toy",
-        nbf: Math.floor(twentyOfJune2023InMs / 1000),
-        exp: Math.floor(twentyOfJune2023InMs + thirtyMinutesInMs),
-        vc: {
-          type: ["VerifiableCredential", "IdentityCheckCredential"],
-          credentialSubject: "Kenneth Decerqueira",
-          "@context": contexts,
-          evidence: evidence,
-        },
-      });
-    });
-    it("should build with JTI", async () => {
-      mockSSMClient.prototype.send = getMockSend("true");
-      const ttlDuration = 30;
-      await expect(
-        builder
-          .subject("Kenneth Decerqueira")
-          .issuer("an-issuer-for-toy")
-          .timeToLive(
-            ttlDuration,
-            VerifiableCredentialBuilder.ChronoUnit.Minutes
-          )
-          .verifiableCredentialType([
-            "VerifiableCredential",
-            "IdentityCheckCredential",
-          ])
-          .verifiableCredentialSubject("Kenneth Decerqueira")
-          .verifiableCredentialContext(contexts)
-          .verifiableCredentialEvidence(evidence)
-          .build()
-      ).resolves.toEqual({
-        jti: "urn:uuid:d7c05e44-37e6-4ed4-b6d3-01af51a95f84",
-        sub: "Kenneth Decerqueira",
-        iss: "an-issuer-for-toy",
-        nbf: Math.floor(twentyOfJune2023InMs / 1000),
-        vc: {
-          type: ["VerifiableCredential", "IdentityCheckCredential"],
-          credentialSubject: "Kenneth Decerqueira",
-          "@context": contexts,
-          evidence: evidence,
-        },
-      });
+      jest.spyOn(Date, "now").mockReturnValueOnce(twentyOfJune2023InMs);
     });
 
-    it("should build without context and evidence", async () => {
-      const ttlDuration = 30;
-      await expect(
-        builder
-          .subject("Kenneth Decerqueira")
-          .issuer("an-issuer-for-toy")
-          .timeToLive(
-            ttlDuration,
-            VerifiableCredentialBuilder.ChronoUnit.Minutes
+    afterEach(() => jest.clearAllMocks());
+    describe("release flag configured so jti and expiry are not in vc", () => {
+      beforeEach(() => {
+        [
+          {
+            name: "/test-stack-name/verifiable-credential/issuer",
+            value: "an-issuer-for-toy",
+          },
+          {
+            name: "/test-stack-name/release-flags/vc-contains-unique-id",
+            value: "false",
+          },
+          {
+            name: "/release-flags/vc-expiry-removed",
+            value: "true",
+          },
+        ].forEach((param) =>
+          mockSSMClient.prototype.send.mockImplementationOnce(() =>
+            Promise.resolve({
+              Parameter: {
+                Name: param.name,
+                Type: ParameterType.STRING,
+                Value: param.value,
+              },
+            })
           )
-          .verifiableCredentialType([
-            "VerifiableCredential",
-            "IdentityCheckCredential",
-          ])
-          .verifiableCredentialSubject("Kenneth Decerqueira")
-          .build()
-      ).resolves.toEqual({
-        sub: "Kenneth Decerqueira",
-        iss: "an-issuer-for-toy",
-        nbf: Math.floor(twentyOfJune2023InMs / 1000),
-        exp: Math.floor(twentyOfJune2023InMs + thirtyMinutesInMs),
-        vc: {
-          type: ["VerifiableCredential", "IdentityCheckCredential"],
-          credentialSubject: "Kenneth Decerqueira",
-        },
+        );
       });
-      expect(builder.verifiableCredentialContext).toBeDefined;
-      expect(builder.verifiableCredentialEvidence).toBeDefined;
+
+      it("should build", async () => {
+        const ttlDuration = 30;
+        await expect(
+          builder
+            .subject("Kenneth Decerqueira")
+            .timeToLive(
+              VerifiableCredentialBuilder.ChronoUnit.Minutes,
+              ttlDuration
+            )
+            .verifiableCredentialType("ToyCredential")
+            .verifiableCredentialSubject({
+              somesubject: {
+                firstname: "Kenneth",
+                givenname: "Decerqueira",
+              },
+            })
+            .verifiableCredentialContext(contexts)
+            .verifiableCredentialEvidence(evidence)
+            .build()
+        ).resolves.toEqual({
+          sub: "Kenneth Decerqueira",
+          iss: "an-issuer-for-toy",
+          nbf: Math.floor(twentyOfJune2023InMs / 1000),
+          vc: {
+            type: ["VerifiableCredential", "ToyCredential"],
+            credentialSubject: {
+              somesubject: {
+                firstname: "Kenneth",
+                givenname: "Decerqueira",
+              },
+            },
+            "@context": contexts,
+            evidence: evidence,
+          },
+        });
+      });
+      it("should build without context and evidence", async () => {
+        const ttlDuration = 30;
+        await expect(
+          builder
+            .subject("Kenneth Decerqueira")
+            .issuer("an-issuer-for-toy")
+            .timeToLive(
+              VerifiableCredentialBuilder.ChronoUnit.Minutes,
+              ttlDuration
+            )
+            .verifiableCredentialType("ToyCredential")
+            .verifiableCredentialSubject("Kenneth Decerqueira")
+            .build()
+        ).resolves.toEqual({
+          sub: "Kenneth Decerqueira",
+          iss: "an-issuer-for-toy",
+          nbf: Math.floor(twentyOfJune2023InMs / 1000),
+          vc: {
+            type: ["VerifiableCredential", "ToyCredential"],
+            credentialSubject: "Kenneth Decerqueira",
+          },
+        });
+        expect(builder.verifiableCredentialContext).toBeDefined;
+        expect(builder.verifiableCredentialEvidence).toBeDefined;
+      });
     });
-    it("should build without an expiry time", async () => {
-      mockSSMClient.prototype.send = getMockSend("true");
-      const ttlDuration = 30;
-      await expect(
-        builder
-          .subject("Kenneth Decerqueira")
-          .issuer("an-issuer-for-toy")
-          .timeToLive(
-            ttlDuration,
-            VerifiableCredentialBuilder.ChronoUnit.Minutes
+    describe("release flag configured so jti is in the vc", () => {
+      beforeEach(() => {
+        [
+          {
+            name: "/test-stack-name/verifiable-credential/issuer",
+            value: "an-issuer-for-toy",
+          },
+          {
+            name: "/test-stack-name/release-flags/vc-contains-unique-id",
+            value: "true",
+          },
+          {
+            name: "/test-stack-name/release-flags/vc-expiry-removed",
+            value: "true",
+          },
+        ].forEach((param) =>
+          mockSSMClient.prototype.send.mockImplementationOnce(() =>
+            Promise.resolve({
+              Parameter: {
+                Name: param.name,
+                Type: ParameterType.STRING,
+                Value: param.value,
+              },
+            })
           )
-          .verifiableCredentialType([
-            "VerifiableCredential",
-            "IdentityCheckCredential",
-          ])
-          .verifiableCredentialSubject("Kenneth Decerqueira")
-          .build()
-      ).resolves.toEqual({
-        jti: "urn:uuid:d7c05e44-37e6-4ed4-b6d3-01af51a95f84",
-        sub: "Kenneth Decerqueira",
-        iss: "an-issuer-for-toy",
-        nbf: Math.floor(twentyOfJune2023InMs / 1000),
-        vc: {
-          type: ["VerifiableCredential", "IdentityCheckCredential"],
-          credentialSubject: "Kenneth Decerqueira",
-        },
+        );
+      });
+      it("should build with JTI", async () => {
+        const ttlDuration = 30;
+        await expect(
+          builder
+            .subject("Kenneth Decerqueira")
+            .issuer("an-issuer-for-toy")
+            .timeToLive(
+              VerifiableCredentialBuilder.ChronoUnit.Minutes,
+              ttlDuration
+            )
+            .verifiableCredentialType("ToyCredential")
+            .verifiableCredentialSubject({
+              someothersubject: {
+                memberOne: "value1",
+                memberTwo: "value2",
+              },
+            })
+            .verifiableCredentialContext(contexts)
+            .verifiableCredentialEvidence(evidence)
+            .build()
+        ).resolves.toEqual({
+          jti: "urn:uuid:d7c05e44-37e6-4ed4-b6d3-01af51a95f84",
+          sub: "Kenneth Decerqueira",
+          iss: "an-issuer-for-toy",
+          nbf: Math.floor(twentyOfJune2023InMs / 1000),
+          vc: {
+            type: ["VerifiableCredential", "ToyCredential"],
+            credentialSubject: {
+              someothersubject: {
+                memberOne: "value1",
+                memberTwo: "value2",
+              },
+            },
+            "@context": contexts,
+            evidence: evidence,
+          },
+        });
+      });
+    });
+    describe("no release flags in aws parameter store produces vc that has an expiry", () => {
+      beforeEach(() =>
+        mockSSMClient.prototype.send.mockImplementationOnce(() =>
+          Promise.resolve({
+            Parameter: {
+              Name: "/test-stack-name/verifiable-credential/issuer",
+              Type: ParameterType.STRING,
+              Value: "an-issuer-for-toy",
+            },
+          })
+        )
+      );
+      it("should build", async () => {
+        const ttlDuration = 30;
+        await expect(
+          builder
+            .subject("Kenneth Decerqueira")
+            .timeToLive(
+              VerifiableCredentialBuilder.ChronoUnit.Minutes,
+              ttlDuration
+            )
+            .verifiableCredentialType("ToyCredential")
+            .verifiableCredentialSubject({
+              somesubject: {
+                firstname: "Kenneth",
+                givenname: "Decerqueira",
+              },
+            })
+            .verifiableCredentialContext(contexts)
+            .verifiableCredentialEvidence(evidence)
+            .build()
+        ).resolves.toEqual({
+          sub: "Kenneth Decerqueira",
+          iss: "an-issuer-for-toy",
+          nbf: Math.floor(twentyOfJune2023InMs / 1000),
+          exp: Math.floor(twentyOfJune2023InMs + thirtyMinutesInMs),
+          vc: {
+            type: ["VerifiableCredential", "ToyCredential"],
+            credentialSubject: {
+              somesubject: {
+                firstname: "Kenneth",
+                givenname: "Decerqueira",
+              },
+            },
+            "@context": contexts,
+            evidence: evidence,
+          },
+        });
+      });
+      it("should build without context and evidence", async () => {
+        const ttlDuration = 30;
+        await expect(
+          builder
+            .subject("Kenneth Decerqueira")
+            .issuer("an-issuer-for-toy")
+            .timeToLive(
+              VerifiableCredentialBuilder.ChronoUnit.Minutes,
+              ttlDuration
+            )
+            .verifiableCredentialType("ToyCredential")
+            .verifiableCredentialSubject("Kenneth Decerqueira")
+            .build()
+        ).resolves.toEqual({
+          sub: "Kenneth Decerqueira",
+          iss: "an-issuer-for-toy",
+          nbf: Math.floor(twentyOfJune2023InMs / 1000),
+          exp: Math.floor(twentyOfJune2023InMs + thirtyMinutesInMs),
+          vc: {
+            type: ["VerifiableCredential", "ToyCredential"],
+            credentialSubject: "Kenneth Decerqueira",
+          },
+        });
+        expect(builder.verifiableCredentialContext).toBeDefined;
+        expect(builder.verifiableCredentialEvidence).toBeDefined;
       });
     });
   });

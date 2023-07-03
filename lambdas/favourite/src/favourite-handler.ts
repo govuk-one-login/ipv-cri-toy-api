@@ -23,8 +23,8 @@ import saveToyMiddleware from "../../middlewares/toy/save-toy-middleware";
 import { SessionService } from "../../services/session-service";
 import { CommonConfigKey } from "../../types/config-keys";
 import { SessionItem } from "../../types/session-item";
-import { ToyItem } from "../../types/toy";
 import createAuthorizationCodeMiddleware from "../../middlewares/session/create-authorization-code-middleware";
+import { ToyItem } from "../../types/toy_item";
 
 const dynamoDbClient = createClient(AwsClientType.DYNAMO) as DynamoDBDocument;
 const ssmClient = createClient(AwsClientType.SSM) as SSMClient;

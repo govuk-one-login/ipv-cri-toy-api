@@ -21,6 +21,9 @@ const getHeaderValue = (event: APIGatewayProxyEvent, desiredHeader: string) => {
   }
 };
 
+export const getAccessToken = (event: APIGatewayProxyEvent) => {
+  return getHeaderValue(event, "authorization");
+};
 export const getClientIpAddress = (event: APIGatewayProxyEvent) => {
   return getHeaderValue(event, "x-forwarded-for");
 };
