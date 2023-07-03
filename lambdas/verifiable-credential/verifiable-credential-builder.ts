@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import {
   ChronoUnit,
   VerifiableCredential,
-} from "./types/verifiable-credentials";
+} from "../types/verifiable-credentials";
 import { GetParameterCommand, Parameter, SSMClient } from "@aws-sdk/client-ssm";
 
 export enum ReleaseFlagKeys {

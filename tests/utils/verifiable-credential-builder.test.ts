@@ -1,5 +1,5 @@
 import { ParameterType, SSMClient } from "@aws-sdk/client-ssm";
-import { ChronoUnit } from "../../lambdas/verifiable-credential/types/verifiable-credentials";
+import { ChronoUnit } from "../../lambdas/types/verifiable-credentials";
 import { VerifiableCredentialBuilder } from "../../lambdas/verifiable-credential/verifiable-credential-builder";
 jest.mock("@aws-sdk/client-ssm", () => ({
   __esModule: true,
