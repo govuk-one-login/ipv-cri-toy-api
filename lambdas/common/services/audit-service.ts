@@ -92,7 +92,7 @@ export class AuditService {
     sessionItem: SessionItem,
     extensions?: Record<string, string>
   ): AuditEventContext {
-    let context = {
+    const context = {
       sessionItem: {
         sessionId: sessionItem.sessionId,
         subject: sessionItem.subject,
