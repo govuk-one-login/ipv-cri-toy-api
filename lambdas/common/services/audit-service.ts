@@ -7,6 +7,7 @@ import {
   AuditEventUser,
 } from "../../types/audit-event";
 import { CriAuditConfig } from "../../types/cri-audit-config";
+import { SessionItem } from "../../types/session-item";
 
 export class AuditService {
   private auditConfig: CriAuditConfig | undefined;
@@ -85,5 +86,27 @@ export class AuditService {
       QueueUrl: this.auditConfig?.queueUrl as string,
     });
     await this.sqsClient.send(sendMsgCommand);
+  }
+
+  public createAuditEventContext(
+    sessionItem: SessionItem,
+    extensions?: Record<string, string>
+  ): AuditEventContext {
+    let context = {
+      sessionItem: {
+        sessionId: sessionItem.sessionId,
+        subject: sessionItem.subject,
+        persistentSessionId: sessionItem.persistentSessionId,
+        clientSessionId: sessionItem.clientSessionId,
+      },
+      clientIpAddress: sessionItem.clientIpAddress,
+    };
+    if (extensions) {
+      return {
+        ...context,
+        extensions: extensions,
+      };
+    }
+    return context;
   }
 }
