@@ -17,6 +17,11 @@ import saveToyMiddleware from "../lambdas/middlewares/toy/save-toy-middleware";
 import { SessionService } from "../lambdas/services/session-service";
 import { CommonConfigKey } from "../lambdas/types/config-keys";
 import createAuthorizationCodeMiddleware from "../lambdas/middlewares/session/create-authorization-code-middleware";
+import { AuditService } from "../lambdas/common/services/audit-service";
+import {
+  AuditEventContext,
+  AuditEventType,
+} from "../lambdas/types/audit-event";
 
 jest.mock("@aws-sdk/lib-dynamodb", () => ({
   __esModule: true,
@@ -48,6 +53,7 @@ describe("favourite-handler.ts", () => {
   let metrics: jest.MockedObjectDeep<typeof Metrics>;
   let configService: jest.MockedObjectDeep<typeof ConfigService>;
   let sessionService: jest.MockedObjectDeep<typeof SessionService>;
+  let auditService: jest.MockedObjectDeep<typeof AuditService>;
   let dynamoDbClient: jest.MockedObjectDeep<typeof DynamoDBDocument>;
   let _putCommand: jest.MockedObjectDeep<typeof PutCommand>;
   let _updateCommand: jest.MockedObjectDeep<typeof UpdateCommand>;
@@ -85,11 +91,12 @@ describe("favourite-handler.ts", () => {
     metrics = jest.mocked(Metrics);
     configService = jest.mocked(ConfigService);
     sessionService = jest.mocked(SessionService);
+    auditService = jest.mocked(AuditService);
     dynamoDbClient = jest.mocked(DynamoDBDocument);
     _putCommand = jest.mocked(PutCommand);
     _updateCommand = jest.mocked(UpdateCommand);
 
-    favouriteLambda = new FavouriteLambda();
+    favouriteLambda = new FavouriteLambda(auditService.prototype);
 
     lambdaHandler = middy(favouriteLambda.handler.bind(favouriteLambda))
       .use(
@@ -129,7 +136,14 @@ describe("favourite-handler.ts", () => {
     jest.spyOn(sessionService.prototype, "getSession").mockReturnValue({
       sessionId: "6b0f3490-db8b-4803-967d-39d77a2ece21",
       expiryDate: Math.floor(Date.now() / 1000) + WEEK_IN_SECONDS,
+      clientIpAddress: "00.00.00",
+      subject: "test-subject",
+      persistentSessionId: "5ef1af56-34cd-4572-87eb-6c1184624eaf",
+      clientSessionId: "7c852b9d-4c9a-42be-b3cc-c84f87f2cd2b",
     });
+    jest
+      .spyOn(auditService.prototype, "sendAuditEvent")
+      .mockReturnValue(new Promise((res) => res(null)));
     jest.spyOn(metrics.prototype, "addMetric").mockImplementation();
     jest.spyOn(logger.prototype, "error").mockImplementation();
     jest.spyOn(dynamoDbClient.prototype, "send").mockImplementation();
@@ -182,5 +196,61 @@ describe("favourite-handler.ts", () => {
     const errorBody = JSON.parse(response.body);
     expect(response.statusCode).toBe(404);
     expect(errorBody.message).toBe("Toy not found: marbles");
+  });
+
+  it("should send audit events to the txma queue", async () => {
+    const spy = jest.spyOn(auditService.prototype, "sendAuditEvent");
+    const expectedAuditEventContext: AuditEventContext = {
+      sessionItem: {
+        subject: "test-subject",
+        sessionId: "6b0f3490-db8b-4803-967d-39d77a2ece21",
+        persistentSessionId: "5ef1af56-34cd-4572-87eb-6c1184624eaf",
+        clientSessionId: "7c852b9d-4c9a-42be-b3cc-c84f87f2cd2b",
+      },
+      clientIpAddress: "00.00.00",
+      extensions: {
+        toy: "marble-race",
+      },
+    };
+
+    await lambdaHandler(mockEvent, {} as Context);
+
+    expect(spy).toHaveBeenCalledTimes(2);
+    expect(spy).toHaveBeenCalledWith(
+      AuditEventType.REQUEST_SENT,
+      expectedAuditEventContext
+    );
+    expect(spy).toHaveBeenCalledWith(AuditEventType.RESPONSE_RECEIVED, {
+      ...expectedAuditEventContext,
+      extensions: {
+        toy: "marble-race",
+        toyResponse: "marble-race found: received 200 response",
+      },
+    });
+  });
+
+  it("should send the correct toy api response to txma", async () => {
+    const mockFetch = getMockFetch(404);
+    global.fetch = mockFetch;
+    const spy = jest.spyOn(auditService.prototype, "sendAuditEvent");
+    const expectedAuditEventContext: AuditEventContext = {
+      sessionItem: {
+        subject: "test-subject",
+        sessionId: "6b0f3490-db8b-4803-967d-39d77a2ece21",
+        persistentSessionId: "5ef1af56-34cd-4572-87eb-6c1184624eaf",
+        clientSessionId: "7c852b9d-4c9a-42be-b3cc-c84f87f2cd2b",
+      },
+      clientIpAddress: "00.00.00",
+    };
+
+    await lambdaHandler(mockEvent, {} as Context);
+
+    expect(spy).toHaveBeenCalledWith(AuditEventType.RESPONSE_RECEIVED, {
+      ...expectedAuditEventContext,
+      extensions: {
+        toy: "marble-race",
+        toyResponse: "ToyNotFoundError: received 404 response",
+      },
+    });
   });
 });
