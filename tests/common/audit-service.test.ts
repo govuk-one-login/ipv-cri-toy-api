@@ -40,15 +40,12 @@ describe("AuditService", () => {
     jest.clearAllMocks();
 
     mockGetConfig.mockImplementation(() => {
-      return "test-issuer"
+      return "test-issuer";
     });
 
     jest.spyOn(global.Date, "now").mockReturnValueOnce(1681147957473);
 
-    auditService = new AuditService(
-      mockGetConfig,
-      mockSqsClient.prototype
-    );
+    auditService = new AuditService(mockGetConfig, mockSqsClient.prototype);
   });
 
   it("should request the audit config if necessary", async () => {
@@ -83,7 +80,8 @@ describe("AuditService", () => {
           user_id: "test-subject",
         },
       }),
-      QueueUrl: "https://sqs.eu-west-2.amazonaws.com/322814139578/txma-infrastructure-AuditEventQueue",
+      QueueUrl:
+        "https://sqs.eu-west-2.amazonaws.com/322814139578/txma-infrastructure-AuditEventQueue",
     });
 
     expect(mockSqsClient.prototype.send).toBeCalledTimes(1);
@@ -111,7 +109,8 @@ describe("AuditService", () => {
           user_id: undefined,
         },
       }),
-      QueueUrl: "https://sqs.eu-west-2.amazonaws.com/322814139578/txma-infrastructure-AuditEventQueue",
+      QueueUrl:
+        "https://sqs.eu-west-2.amazonaws.com/322814139578/txma-infrastructure-AuditEventQueue",
     });
 
     expect(mockSqsClient.prototype.send).toBeCalledTimes(1);
