@@ -20,7 +20,7 @@ jest.mock("@aws-sdk/client-sqs", () => {
 
 describe("AuditService", () => {
   let auditService: AuditService;
-  const mockGetAuditConfig = jest.fn();
+  const mockGetConfig = jest.fn();
 
   const mockSqsClient = jest.mocked(SQSClient);
   const mockSendMessageCommand = jest.mocked(SendMessageCommand);
@@ -39,25 +39,21 @@ describe("AuditService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockGetAuditConfig.mockImplementation(() => {
-      return {
-        queueUrl: "test-url",
-        auditEventNamePrefix: "TEST_PREFIX",
-        issuer: "test-issuer",
-      };
+    mockGetConfig.mockImplementation(() => {
+      return "test-issuer"
     });
 
     jest.spyOn(global.Date, "now").mockReturnValueOnce(1681147957473);
 
     auditService = new AuditService(
-      mockGetAuditConfig,
+      mockGetConfig,
       mockSqsClient.prototype
     );
   });
 
   it("should request the audit config if necessary", async () => {
     await auditService.sendAuditEvent(mockEventType, mockContext);
-    expect(mockGetAuditConfig).toHaveBeenCalledTimes(1);
+    expect(mockGetConfig).toHaveBeenCalledTimes(1);
   });
 
   it("should error without an event type", async () => {
@@ -75,7 +71,7 @@ describe("AuditService", () => {
     expect(mockSendMessageCommand).toBeCalledWith({
       MessageBody: JSON.stringify({
         component_id: "test-issuer",
-        event_name: `TEST_PREFIX_START`,
+        event_name: "IPV_TOY_CRI_START",
         extensions: undefined,
         restricted: undefined,
         timestamp: 1681147957,
@@ -87,7 +83,7 @@ describe("AuditService", () => {
           user_id: "test-subject",
         },
       }),
-      QueueUrl: "test-url",
+      QueueUrl: "https://sqs.eu-west-2.amazonaws.com/322814139578/txma-infrastructure-AuditEventQueue",
     });
 
     expect(mockSqsClient.prototype.send).toBeCalledTimes(1);
@@ -103,7 +99,7 @@ describe("AuditService", () => {
     expect(mockSendMessageCommand).toBeCalledWith({
       MessageBody: JSON.stringify({
         component_id: "test-issuer",
-        event_name: `TEST_PREFIX_START`,
+        event_name: "IPV_TOY_CRI_START",
         extensions: undefined,
         restricted: undefined,
         timestamp: 1681147957,
@@ -115,7 +111,7 @@ describe("AuditService", () => {
           user_id: undefined,
         },
       }),
-      QueueUrl: "test-url",
+      QueueUrl: "https://sqs.eu-west-2.amazonaws.com/322814139578/txma-infrastructure-AuditEventQueue",
     });
 
     expect(mockSqsClient.prototype.send).toBeCalledTimes(1);

@@ -5,7 +5,6 @@ import {
 } from "@aws-sdk/client-ssm";
 import { Parameter } from "aws-sdk/clients/ssm";
 import { CommonConfigKey } from "../../types/config-keys";
-import { CriAuditConfig } from "../../types/cri-audit-config";
 
 const DEFAULT_AUTHORIZATION_CODE_TTL_IN_SECS = 600;
 const PARAMETER_PREFIX = process.env.AWS_STACK_NAME || "";
@@ -50,25 +49,6 @@ export class ConfigService {
     } else {
       return `/${PARAMETER_PREFIX}/${parameterNameSuffix}`;
     }
-  }
-
-  public getAuditConfig(): CriAuditConfig {
-    const auditEventNamePrefix = process.env["SQS_AUDIT_EVENT_PREFIX"];
-    if (!auditEventNamePrefix) {
-      throw new Error("Missing environment variable: SQS_AUDIT_EVENT_PREFIX");
-    }
-    const queueUrl = process.env["SQS_AUDIT_EVENT_QUEUE_URL"];
-    if (!queueUrl) {
-      throw new Error(
-        "Missing environment variable: SQS_AUDIT_EVENT_QUEUE_URL"
-      );
-    }
-    const issuer = this.getConfigEntry(CommonConfigKey.VC_ISSUER);
-    return {
-      auditEventNamePrefix,
-      issuer,
-      queueUrl,
-    };
   }
 
   private async getDefaultConfig(

@@ -120,7 +120,7 @@ export class FavouriteLambda implements LambdaInterface {
 
 const configService = new ConfigService(ssmClient);
 const auditService = new AuditService(
-  () => configService.getAuditConfig(),
+  () => configService.getConfigEntry(CommonConfigKey.VC_ISSUER),
   sqsClient
 );
 const sessionService = new SessionService(dynamoDbClient, configService);

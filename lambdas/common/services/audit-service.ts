@@ -11,7 +11,7 @@ import { CriAuditConfig } from "../../types/cri-audit-config";
 export class AuditService {
   private auditConfig: CriAuditConfig | undefined;
   constructor(
-    private readonly getAuditConfig: () => CriAuditConfig,
+    private readonly getConfigEntry: () => string,
     private readonly sqsClient: SQSClient
   ) {}
 
@@ -24,6 +24,25 @@ export class AuditService {
     }
     const auditEvent = this.createAuditEvent(eventType, context);
     await this.sendAuditEventToQueue(auditEvent);
+  }
+
+  public getAuditConfig(): CriAuditConfig {
+    const auditEventNamePrefix = process.env["SQS_AUDIT_EVENT_PREFIX"];
+    if (!auditEventNamePrefix) {
+      throw new Error("Missing environment variable: SQS_AUDIT_EVENT_PREFIX");
+    }
+    const queueUrl = process.env["SQS_AUDIT_EVENT_QUEUE_URL"];
+    if (!queueUrl) {
+      throw new Error(
+        "Missing environment variable: SQS_AUDIT_EVENT_QUEUE_URL"
+      );
+    }
+    const issuer = this.getConfigEntry();
+    return {
+      auditEventNamePrefix,
+      issuer,
+      queueUrl,
+    };
   }
 
   private createAuditEvent(
