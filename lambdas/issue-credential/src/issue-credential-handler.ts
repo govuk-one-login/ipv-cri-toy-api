@@ -114,7 +114,10 @@ export const lambdaHandler: Handler = middy(
   .use(
     initialiseConfigMiddleware({
       configService: configService,
-      config_keys: [CommonConfigKey.SESSION_TABLE_NAME],
+      config_keys: [
+        CommonConfigKey.SESSION_TABLE_NAME,
+        CommonConfigKey.VC_ISSUER,
+      ],
     })
   )
   .use(validateHeaderBearerTokenMiddleware())
