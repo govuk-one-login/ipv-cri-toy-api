@@ -26,11 +26,14 @@ import { AuditService } from "../../common/services/audit-service";
 import { AuditEventType } from "../../types/audit-event";
 import { SQSClient } from "@aws-sdk/client-sqs";
 import { SessionItem } from "../../types/session-item";
+import getSessionByIdMiddleware from "../../middlewares/session/get-session-by-id-middleware";
+import { SessionService } from "../../services/session-service";
 const TOY_CREDENTIAL_ISSUER = "toy_credential_issuer";
 const dynamoDbClient = createClient(AwsClientType.DYNAMO) as DynamoDBDocument;
 const ssmClient = createClient(AwsClientType.SSM) as SSMClient;
 const sqsClient = createClient(AwsClientType.SQS) as SQSClient;
 const configService = new ConfigService(ssmClient);
+const sessionService = new SessionService(dynamoDbClient, configService);
 const auditService = new AuditService(
   () => configService.getConfigEntry(CommonConfigKey.VC_ISSUER),
   sqsClient
@@ -133,4 +136,5 @@ export const lambdaHandler: Handler = middy(
       dynamoDbClient: dynamoDbClient,
     })
   )
+  .use(getSessionByIdMiddleware({ sessionService: sessionService }))
   .use(setGovUkSigningJourneyIdMiddleware(logger));

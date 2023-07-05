@@ -13,11 +13,15 @@ const getSessionByIdMiddleware = (opts: {
     const event = request.event;
     const sessionId = event?.body?.sessionId || getSessionId(event);
     const sessionItem = await options.sessionService.getSession(sessionId);
+    let body = event.body;
+    if (typeof body == "string" || body instanceof String) {
+      body = JSON.parse(event.body);
+    }
     request.event = {
       ...request.event,
       body: {
+        ...body,
         ...sessionItem,
-        ...JSON.parse(event.body),
       },
     };
     await request.event;
