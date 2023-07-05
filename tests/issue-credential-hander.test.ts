@@ -18,6 +18,7 @@ import {
   AuditEventContext,
   AuditEventType,
 } from "../lambdas/types/audit-event";
+import getSessionByIdMiddleware from "../lambdas/middlewares/session/get-session-by-id-middleware";
 import { SessionService } from "../lambdas/services/session-service";
 jest.mock("@aws-sdk/client-ssm", () => ({
   __esModule: true,
@@ -38,6 +39,7 @@ describe("issue-credential-handler.ts", () => {
 
   let configService: jest.MockedObjectDeep<typeof ConfigService>;
   let auditService: jest.MockedObjectDeep<typeof AuditService>;
+  let sessionService: jest.MockedObjectDeep<typeof SessionService>;
   let lambdaHandler: middy.MiddyfiedHandler;
   let mockEvent: APIGatewayProxyEvent;
 
@@ -60,6 +62,7 @@ describe("issue-credential-handler.ts", () => {
     mockSSMClient = jest.mocked(SSMClient);
     configService = jest.mocked(ConfigService);
     auditService = jest.mocked(AuditService);
+    sessionService = jest.mocked(SessionService);
     logger = jest.mocked(Logger);
     metrics = jest.mocked(Metrics);
 
@@ -95,6 +98,9 @@ describe("issue-credential-handler.ts", () => {
           dynamoDbClient: dynamoDbClient.prototype,
         })
       )
+      .use(
+        getSessionByIdMiddleware({ sessionService: sessionService.prototype })
+      )
       .use(setGovUkSigningJourneyIdMiddleware(logger.prototype));
 
     jest.spyOn(metrics.prototype, "addMetric").mockImplementation();
@@ -109,6 +115,7 @@ describe("issue-credential-handler.ts", () => {
     jest
       .spyOn(auditService.prototype, "sendAuditEvent")
       .mockReturnValue(new Promise((res) => res(null)));
+    jest.spyOn(sessionService.prototype, "getSession").mockReturnValue({});
 
     const impl = () =>
       jest.fn().mockImplementation(() => Promise.resolve({ Parameters: [] }));
