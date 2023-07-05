@@ -184,7 +184,7 @@ describe("issue-credential-handler.ts", () => {
       expect(mockSSMClient.prototype.send).toHaveBeenCalledTimes(4);
     });
 
-    it("should sent audit events", async () => {
+    it("should send audit events", async () => {
       const spy = jest.spyOn(auditService.prototype, "sendAuditEvent");
       const expectedAuditEventContext: AuditEventContext = {
         sessionItem: {
