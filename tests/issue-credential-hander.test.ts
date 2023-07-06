@@ -13,6 +13,13 @@ import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
 import initialiseConfigMiddleware from "../lambdas/middlewares/config/initialise-config-middleware";
 import { CommonConfigKey } from "../lambdas/types/config-keys";
 import { ParameterType, SSMClient } from "@aws-sdk/client-ssm";
+import { AuditService } from "../lambdas/common/services/audit-service";
+import {
+  AuditEventContext,
+  AuditEventType,
+} from "../lambdas/types/audit-event";
+import getSessionByIdMiddleware from "../lambdas/middlewares/session/get-session-by-id-middleware";
+import { SessionService } from "../lambdas/services/session-service";
 jest.mock("@aws-sdk/client-ssm", () => ({
   __esModule: true,
   ...jest.requireActual("@aws-sdk/client-ssm"),
@@ -31,24 +38,37 @@ describe("issue-credential-handler.ts", () => {
   let mockSSMClient: jest.MockedObjectDeep<typeof SSMClient>;
 
   let configService: jest.MockedObjectDeep<typeof ConfigService>;
+  let auditService: jest.MockedObjectDeep<typeof AuditService>;
+  let sessionService: jest.MockedObjectDeep<typeof SessionService>;
   let lambdaHandler: middy.MiddyfiedHandler;
   let mockEvent: APIGatewayProxyEvent;
 
-  const issueCredentialLambda = new IssueCredentialLambda();
   const TOY_CREDENTIAL_ISSUER = "toy_credential_issuer";
   const mockMap = new Map<string, string>();
   const sessionItem = {
     client_id: "toy-cri",
     toy: "marble-race",
     status: "Authenticated",
+    sessionId: "6b0f3490-db8b-4803-967d-39d77a2ece21",
+    expiryDate: Math.floor(Date.now() / 1000) + 10_000,
+    clientIpAddress: "00.00.00",
+    subject: "test-subject",
+    persistentSessionId: "5ef1af56-34cd-4572-87eb-6c1184624eaf",
+    clientSessionId: "7c852b9d-4c9a-42be-b3cc-c84f87f2cd2b",
   };
   beforeEach(() => {
     mockMap.set("test-client-id", "test-config-value");
     dynamoDbClient = jest.mocked(DynamoDBDocument);
     mockSSMClient = jest.mocked(SSMClient);
     configService = jest.mocked(ConfigService);
+    auditService = jest.mocked(AuditService);
+    sessionService = jest.mocked(SessionService);
     logger = jest.mocked(Logger);
     metrics = jest.mocked(Metrics);
+
+    const issueCredentialLambda = new IssueCredentialLambda(
+      auditService.prototype
+    );
     lambdaHandler = middy(
       issueCredentialLambda.handler.bind(issueCredentialLambda)
     )
@@ -78,6 +98,9 @@ describe("issue-credential-handler.ts", () => {
           dynamoDbClient: dynamoDbClient.prototype,
         })
       )
+      .use(
+        getSessionByIdMiddleware({ sessionService: sessionService.prototype })
+      )
       .use(setGovUkSigningJourneyIdMiddleware(logger.prototype));
 
     jest.spyOn(metrics.prototype, "addMetric").mockImplementation();
@@ -89,6 +112,10 @@ describe("issue-credential-handler.ts", () => {
     jest
       .spyOn(configService.prototype, "getConfigEntry")
       .mockReturnValue(mockMap);
+    jest
+      .spyOn(auditService.prototype, "sendAuditEvent")
+      .mockReturnValue(new Promise((res) => res(null)));
+    jest.spyOn(sessionService.prototype, "getSession").mockReturnValue({});
 
     const impl = () =>
       jest.fn().mockImplementation(() => Promise.resolve({ Parameters: [] }));
@@ -129,11 +156,11 @@ describe("issue-credential-handler.ts", () => {
           value: true,
         },
         {
-          name: "/di-ipv-cri-toy-api/release-flags/vc-expiry-removed",
-          value: true,
+          name: "/di-ipv-cri-toy-api/verifiable-credential/issuer",
+          value: "https://review-toy.dev.account.gov.uk",
         },
         {
-          name: "/di-ipv-cri-toy-api/verifiable-credential/issuer",
+          name: "/di-ipv-cri-toy-api/release-flags/vc-expiry-removed",
           value: true,
         },
       ].forEach((param) =>
@@ -156,7 +183,34 @@ describe("issue-credential-handler.ts", () => {
       expect(dynamoDbClient.prototype.send).toHaveBeenCalledTimes(1);
       expect(mockSSMClient.prototype.send).toHaveBeenCalledTimes(4);
     });
+
+    it("should send audit events", async () => {
+      const spy = jest.spyOn(auditService.prototype, "sendAuditEvent");
+      const expectedAuditEventContext: AuditEventContext = {
+        sessionItem: {
+          subject: "test-subject",
+          sessionId: "6b0f3490-db8b-4803-967d-39d77a2ece21",
+          persistentSessionId: "5ef1af56-34cd-4572-87eb-6c1184624eaf",
+          clientSessionId: "7c852b9d-4c9a-42be-b3cc-c84f87f2cd2b",
+        },
+        clientIpAddress: "00.00.00",
+      };
+      await lambdaHandler(mockEvent, {} as Context);
+      expect(spy).toHaveBeenCalledTimes(2);
+      expect(spy).toHaveBeenCalledWith(
+        AuditEventType.END,
+        expectedAuditEventContext
+      );
+      expect(spy).toHaveBeenCalledWith(AuditEventType.VC_ISSUED, {
+        ...expectedAuditEventContext,
+        extensions: {
+          toy: "marble-race",
+          iss: "https://review-toy.dev.account.gov.uk",
+        },
+      });
+    });
   });
+
   describe("authorization absent, unable to issue veriable credential", () => {
     beforeEach(() => {
       mockEvent = {

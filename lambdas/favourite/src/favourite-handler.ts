@@ -27,7 +27,7 @@ import { SessionItem } from "../../types/session-item";
 import createAuthorizationCodeMiddleware from "../../middlewares/session/create-authorization-code-middleware";
 import { AuditService } from "../../common/services/audit-service";
 import { SQSClient } from "@aws-sdk/client-sqs";
-import { AuditEventContext, AuditEventType } from "../../types/audit-event";
+import { AuditEventType } from "../../types/audit-event";
 import { ToyItem } from "../../types/toy_item";
 
 const dynamoDbClient = createClient(AwsClientType.DYNAMO) as DynamoDBDocument;
@@ -50,14 +50,11 @@ export class FavouriteLambda implements LambdaInterface {
       throw new SessionExpiredError();
     }
 
-    const auditEventContext = this.createAuditEventContext(
-      sessionItem,
-      toyBody.toy
-    );
-
     await this.auditService.sendAuditEvent(
       AuditEventType.REQUEST_SENT,
-      auditEventContext
+      this.auditService.createAuditEventContext(sessionItem, {
+        toy: toyBody.toy,
+      })
     );
     const response = await this.callExternalToy(toyBody.toy);
 
@@ -65,15 +62,15 @@ export class FavouriteLambda implements LambdaInterface {
 
     if (statusCode == 200) {
       const msg = `${toyBody.toy} found: received 200 response`;
-      this.updateContextAndSendAuditEvent(msg, auditEventContext, toyBody.toy);
+      this.updateContextAndSendAuditEvent(msg, sessionItem, toyBody.toy);
       logger.info(msg);
     } else if (statusCode == 404) {
       const msg = "ToyNotFoundError: received 404 response";
-      this.updateContextAndSendAuditEvent(msg, auditEventContext, toyBody.toy);
+      this.updateContextAndSendAuditEvent(msg, sessionItem, toyBody.toy);
       throw new ToyNotFoundError(toyBody.toy);
     } else {
       const msg = `Error: received ${statusCode} response - ${response.statusText}`;
-      this.updateContextAndSendAuditEvent(msg, auditEventContext, toyBody.toy);
+      this.updateContextAndSendAuditEvent(msg, sessionItem, toyBody.toy);
       throw new GenericServerError(msg);
     }
 
@@ -102,38 +99,17 @@ export class FavouriteLambda implements LambdaInterface {
 
   private async updateContextAndSendAuditEvent(
     msg: string,
-    auditEventContext: AuditEventContext,
-    toy: string
-  ) {
-    const receivedContext = {
-      ...auditEventContext,
-      extensions: {
-        toy: toy,
-        toyResponse: msg,
-      },
-    };
-    await this.auditService.sendAuditEvent(
-      AuditEventType.RESPONSE_RECEIVED,
-      receivedContext
-    );
-  }
-
-  private createAuditEventContext(
     sessionItem: SessionItem,
     toy: string
-  ): AuditEventContext {
-    return {
-      sessionItem: {
-        sessionId: sessionItem.sessionId,
-        subject: sessionItem.subject,
-        persistentSessionId: sessionItem.persistentSessionId,
-        clientSessionId: sessionItem.clientSessionId,
-      },
-      clientIpAddress: sessionItem.clientIpAddress,
-      extensions: {
-        toy: toy,
-      },
-    };
+  ) {
+    const context = this.auditService.createAuditEventContext(sessionItem, {
+      toy: toy,
+      toyResponse: msg,
+    });
+    await this.auditService.sendAuditEvent(
+      AuditEventType.RESPONSE_RECEIVED,
+      context
+    );
   }
 }
 

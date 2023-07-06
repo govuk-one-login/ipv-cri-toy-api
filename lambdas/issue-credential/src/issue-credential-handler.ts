@@ -22,12 +22,26 @@ import { CommonConfigKey } from "../../types/config-keys";
 import initialiseConfigMiddleware from "../../middlewares/config/initialise-config-middleware";
 import { Subject } from "../../types/subject";
 import { ToyItem } from "../../types/toy_item";
+import { AuditService } from "../../common/services/audit-service";
+import { AuditEventType } from "../../types/audit-event";
+import { SQSClient } from "@aws-sdk/client-sqs";
+import { SessionItem } from "../../types/session-item";
+import getSessionByIdMiddleware from "../../middlewares/session/get-session-by-id-middleware";
+import { SessionService } from "../../services/session-service";
 const TOY_CREDENTIAL_ISSUER = "toy_credential_issuer";
 const dynamoDbClient = createClient(AwsClientType.DYNAMO) as DynamoDBDocument;
 const ssmClient = createClient(AwsClientType.SSM) as SSMClient;
+const sqsClient = createClient(AwsClientType.SQS) as SQSClient;
 const configService = new ConfigService(ssmClient);
+const sessionService = new SessionService(dynamoDbClient, configService);
+const auditService = new AuditService(
+  () => configService.getConfigEntry(CommonConfigKey.VC_ISSUER),
+  sqsClient
+);
 const builder = new VerifiableCredentialBuilder(ssmClient);
 export class IssueCredentialLambda implements LambdaInterface {
+  constructor(private readonly auditService: AuditService) {}
+
   public async handler(
     event: APIGatewayProxyEvent,
     _context: unknown
@@ -39,6 +53,7 @@ export class IssueCredentialLambda implements LambdaInterface {
     //TODO: we also need the MaxJwtTtl implementation here not quite right, revisit the java version
     const ttlDuration = parameter.Value as unknown as number; // should be from config
     const toyBody = event.body as unknown as ToyItem;
+    const sessionItem = event.body as unknown as SessionItem;
 
     const vcClaimSet = await builder
       .subject(toyBody.toy)
@@ -66,6 +81,19 @@ export class IssueCredentialLambda implements LambdaInterface {
       } as Subject)
       .build();
 
+    await this.auditService.sendAuditEvent(
+      AuditEventType.VC_ISSUED,
+      this.auditService.createAuditEventContext(sessionItem, {
+        toy: toyBody.toy,
+        iss: vcClaimSet.iss,
+      })
+    );
+
+    await this.auditService.sendAuditEvent(
+      AuditEventType.END,
+      this.auditService.createAuditEventContext(sessionItem)
+    );
+
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -75,7 +103,7 @@ export class IssueCredentialLambda implements LambdaInterface {
   }
 }
 
-const handlerClass = new IssueCredentialLambda();
+const handlerClass = new IssueCredentialLambda(auditService);
 export const lambdaHandler: Handler = middy(
   handlerClass.handler.bind(handlerClass)
 )
@@ -89,7 +117,10 @@ export const lambdaHandler: Handler = middy(
   .use(
     initialiseConfigMiddleware({
       configService: configService,
-      config_keys: [CommonConfigKey.SESSION_TABLE_NAME],
+      config_keys: [
+        CommonConfigKey.SESSION_TABLE_NAME,
+        CommonConfigKey.VC_ISSUER,
+      ],
     })
   )
   .use(validateHeaderBearerTokenMiddleware())
@@ -105,4 +136,5 @@ export const lambdaHandler: Handler = middy(
       dynamoDbClient: dynamoDbClient,
     })
   )
+  .use(getSessionByIdMiddleware({ sessionService: sessionService }))
   .use(setGovUkSigningJourneyIdMiddleware(logger));
