@@ -1,9 +1,7 @@
 import { randomUUID } from "crypto";
-import {
-  ChronoUnit,
-  VerifiableCredential,
-} from "../types/verifiable-credentials";
+import { VerifiableCredential } from "../types/verifiable-credentials";
 import { GetParameterCommand, Parameter, SSMClient } from "@aws-sdk/client-ssm";
+import { TimeUnit } from "../common/utils/time-units";
 
 export enum ReleaseFlagKeys {
   CONTAINS_UNIQUE_ID = "release-flags/vc-contains-unique-id",
@@ -12,7 +10,7 @@ export enum ReleaseFlagKeys {
 const PARAMETER_PREFIX = process.env.AWS_STACK_NAME || "";
 
 export class VerifiableCredentialBuilder {
-  static ChronoUnit = ChronoUnit;
+  static TimeUnit = TimeUnit;
   constructor(
     private readonly ssmClient: SSMClient,
     private readonly credential: VerifiableCredential = {
@@ -25,7 +23,7 @@ export class VerifiableCredentialBuilder {
       },
     },
     private ttl: number = 0,
-    private ttlUnit?: ChronoUnit
+    private ttlUnit?: TimeUnit
   ) {}
 
   subject(subject: string): VerifiableCredentialBuilder {
@@ -42,8 +40,8 @@ export class VerifiableCredentialBuilder {
     return this;
   }
 
-  timeToLive(unit: ChronoUnit, ttl?: number): VerifiableCredentialBuilder {
-    if (!unit || !Object.values(ChronoUnit).includes(unit)) {
+  timeToLive(unit: TimeUnit, ttl?: number): VerifiableCredentialBuilder {
+    if (!unit || !Object.values(TimeUnit).includes(unit)) {
       throw new Error("ttlUnit must be valid");
     }
     if (!ttl || ttl < 1) {
@@ -128,13 +126,13 @@ export class VerifiableCredentialBuilder {
 
   private getUnitMultiplier(unit?: string): number {
     switch (unit) {
-      case ChronoUnit.Seconds:
+      case TimeUnit.Seconds:
         return 1000;
-      case ChronoUnit.Minutes:
+      case TimeUnit.Minutes:
         return 1000 * 60;
-      case ChronoUnit.Hours:
+      case TimeUnit.Hours:
         return 1000 * 60 * 60;
-      case ChronoUnit.Days:
+      case TimeUnit.Days:
         return 1000 * 60 * 60 * 24;
       default:
         throw new Error(`Unexpected time-to-live unit encountered: ${unit}`);
