@@ -12,7 +12,11 @@ import { APIGatewayProxyEvent, Context } from "aws-lambda";
 import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
 import initialiseConfigMiddleware from "../lambdas/middlewares/config/initialise-config-middleware";
 import { CommonConfigKey } from "../lambdas/types/config-keys";
-import { ParameterType, SSMClient } from "@aws-sdk/client-ssm";
+import {
+  GetParameterCommand,
+  ParameterType,
+  SSMClient,
+} from "@aws-sdk/client-ssm";
 import { AuditService } from "../lambdas/common/services/audit-service";
 import {
   AuditEventContext,
@@ -32,11 +36,11 @@ jest.mock("@aws-sdk/lib-dynamodb", () => ({
   QueryCommandInput: jest.fn(),
 }));
 describe("issue-credential-handler.ts", () => {
+  const getParameterCommand = jest.mocked(GetParameterCommand);
   let logger: jest.MockedObjectDeep<typeof Logger>;
   let metrics: jest.MockedObjectDeep<typeof Metrics>;
   let dynamoDbClient: jest.MockedObjectDeep<typeof DynamoDBDocument>;
   let mockSSMClient: jest.MockedObjectDeep<typeof SSMClient>;
-
   let configService: jest.MockedObjectDeep<typeof ConfigService>;
   let auditService: jest.MockedObjectDeep<typeof AuditService>;
   let sessionService: jest.MockedObjectDeep<typeof SessionService>;
@@ -57,6 +61,11 @@ describe("issue-credential-handler.ts", () => {
     clientSessionId: "7c852b9d-4c9a-42be-b3cc-c84f87f2cd2b",
   };
   beforeEach(() => {
+    process.env = {
+      ...process.env,
+      AWS_STACK_NAME: "di-ipv-cri-toy-api",
+      COMMON_PARAMETER_NAME_PREFIX: "common-cri-api",
+    };
     mockMap.set("test-client-id", "test-config-value");
     dynamoDbClient = jest.mocked(DynamoDBDocument);
     mockSSMClient = jest.mocked(SSMClient);
@@ -107,14 +116,14 @@ describe("issue-credential-handler.ts", () => {
     jest.spyOn(logger.prototype, "error").mockImplementation();
     jest
       .spyOn(configService.prototype, "init")
-      .mockImplementation(() => new Promise<void>((res) => res()));
+      .mockImplementation((res) => Promise.resolve(res));
 
     jest
       .spyOn(configService.prototype, "getConfigEntry")
       .mockReturnValue(mockMap);
     jest
       .spyOn(auditService.prototype, "sendAuditEvent")
-      .mockReturnValue(new Promise((res) => res(null)));
+      .mockReturnValue(Promise.resolve(null));
     jest.spyOn(sessionService.prototype, "getSession").mockReturnValue({});
 
     const impl = () =>
@@ -125,7 +134,7 @@ describe("issue-credential-handler.ts", () => {
     mockSSMClient.prototype.send = impl();
 
     jest.spyOn(configService.prototype, "getParameter").mockReturnValueOnce({
-      Value: "/toy-cri-v1/ToyTableName",
+      Value: `/${process.env.AWS_STACK_NAME}/ToyTableName`,
     });
   });
 
@@ -152,36 +161,45 @@ describe("issue-credential-handler.ts", () => {
       );
       [
         {
-          name: "/di-ipv-cri-toy-api/release-flags/vc-contains-unique-id",
-          value: true,
+          Name: `/${process.env.AWS_STACK_NAME}/MaxJwtTtl`,
+          Type: ParameterType.STRING,
+          Value: "3",
         },
         {
-          name: "/di-ipv-cri-toy-api/verifiable-credential/issuer",
-          value: "https://review-toy.dev.account.gov.uk",
+          Name: `/${process.env.AWS_STACK_NAME}/JwtTtlUnit`,
+          Type: ParameterType.STRING,
+          Value: "minutes",
         },
         {
-          name: "/di-ipv-cri-toy-api/release-flags/vc-expiry-removed",
-          value: true,
+          Name: `/${process.env.COMMON_PARAMETER_NAME_PREFIX}/verifiable-credential/issuer`,
+          Type: ParameterType.STRING,
+          Value: "https://review-toy.dev.account.gov.uk",
         },
-      ].forEach((param) =>
-        mockSSMClient.prototype.send.mockImplementationOnce(() =>
-          Promise.resolve({
-            Parameter: {
-              Name: param.name,
-              Type: ParameterType.STRING,
-              Value: param.value,
-            },
-          })
-        )
-      );
+        {
+          Name: `/${process.env.AWS_STACK_NAME}/release-flags/vc-contains-unique-id`,
+          Type: ParameterType.STRING,
+          Value: true,
+        },
+        {
+          Name: "/release-flags/vc-expiry-removed",
+          Type: ParameterType.STRING,
+          Value: true,
+        },
+      ].forEach((param) => {
+        jest
+          .spyOn(mockSSMClient.prototype, "send")
+          .mockResolvedValueOnce({ Parameter: param });
+      });
     });
     it("should return a statuscode of 200", async () => {
       const response = await lambdaHandler(mockEvent, {} as Context);
 
-      expect(response.statusCode).toBe(200);
+      expect(getParameterCommand).toBeCalledTimes(5);
+
       expect(dynamoDbClient.prototype.query).toHaveBeenCalledTimes(1);
       expect(dynamoDbClient.prototype.send).toHaveBeenCalledTimes(1);
-      expect(mockSSMClient.prototype.send).toHaveBeenCalledTimes(4);
+      expect(mockSSMClient.prototype.send).toHaveBeenCalledTimes(5);
+      expect(response.statusCode).toBe(200);
     });
 
     it("should send audit events", async () => {
