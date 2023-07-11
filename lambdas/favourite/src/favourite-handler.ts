@@ -89,12 +89,17 @@ export class FavouriteLambda implements LambdaInterface {
 
   private async callExternalToy(toy: string): Promise<Response> {
     if (!TOY_API_URL) {
-      throw new Error("Missing environment variable: TOY_API_URL");
+      throw new GenericServerError("Missing environment variable: TOY_API_URL");
     }
     logger.info("Calling external toy API");
-    return fetch(TOY_API_URL + "/" + toy, {
-      method: "GET",
-    });
+    try {
+      const response = await fetch(TOY_API_URL + "/" + toy, {
+        method: "GET",
+      });
+      return response;
+    } catch (error) {
+      throw new GenericServerError("Error when calling toy API: " + error);
+    }
   }
 
   private async updateContextAndSendAuditEvent(

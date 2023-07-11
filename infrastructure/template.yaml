@@ -86,8 +86,8 @@ Globals:
         - !ImportValue cri-vpc-AWSServicesEndpointSecurityGroupId
       SubnetIds:
         [
-          !ImportValue cri-vpc-PrivateSubnetIdA,
-          !ImportValue cri-vpc-PrivateSubnetIdB,
+          !ImportValue cri-vpc-ProtectedSubnetIdA,
+          !ImportValue cri-vpc-ProtectedSubnetIdB,
         ]
     PermissionsBoundary: !If
       - UsePermissionsBoundary
@@ -149,6 +149,12 @@ Mappings:
       staging: MONTHS
       integration: MONTHS
       production: MONTHS
+
+  ToyApiUrls:
+    Environment:
+      dev: "https://36mwex8dg3.execute-api.eu-west-2.amazonaws.com/dev"
+      build: "https://36mwex8dg3.execute-api.eu-west-2.amazonaws.com/dev" # to update when the stub is deployed to build
+      staging: "https://36mwex8dg3.execute-api.eu-west-2.amazonaws.com/dev" # to update when the stub is deployed to staging
 
 Resources:
   PublicToyApi:
@@ -425,7 +431,7 @@ Resources:
         Variables:
           POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-favourite"
           SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
-          TOY_API_URL: "third/party/stub/url"
+          TOY_API_URL: !FindInMap [ToyApiUrls, Environment, !Ref Environment]
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess

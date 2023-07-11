@@ -13,7 +13,8 @@
     "forceConsistentCasingInFileNames": true,
     "types": ["jest", "node", "aws-lambda"],
     "outDir": "./build/",
-    "noImplicitAny": true
+    "noImplicitAny": true,
+    "lib": ["DOM"]
   },
   "exclude": ["node_modules"],
   "include": ["./lambdas/", "./tests/"]
