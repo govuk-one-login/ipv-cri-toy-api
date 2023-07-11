@@ -28,6 +28,7 @@ import { SQSClient } from "@aws-sdk/client-sqs";
 import { SessionItem } from "../../types/session-item";
 import getSessionByIdMiddleware from "../../middlewares/session/get-session-by-id-middleware";
 import { SessionService } from "../../services/session-service";
+import { getTimeUnitValue } from "../../common/utils/time-units";
 const TOY_CREDENTIAL_ISSUER = "toy_credential_issuer";
 const dynamoDbClient = createClient(AwsClientType.DYNAMO) as DynamoDBDocument;
 const ssmClient = createClient(AwsClientType.SSM) as SSMClient;
@@ -47,17 +48,15 @@ export class IssueCredentialLambda implements LambdaInterface {
     _context: unknown
   ): Promise<APIGatewayProxyResult | { statusCode: number }> {
     logger.info("Toy issue-credential lambda triggered");
-    const parameter = await configService.getParameter(
-      `/${process.env.AWS_STACK_NAME}/JwtTtlUnit`
-    );
-    //TODO: we also need the MaxJwtTtl implementation here not quite right, revisit the java version
-    const ttlDuration = parameter.Value as unknown as number; // should be from config
+
+    const ttlDuration = (await getMaxJwtTl()).Value;
+    const ttlUnit = getTimeUnitValue((await getJwtTlUnit()).Value);
     const toyBody = event.body as unknown as ToyItem;
     const sessionItem = event.body as unknown as SessionItem;
 
     const vcClaimSet = await builder
       .subject(toyBody.toy)
-      .timeToLive(VerifiableCredentialBuilder.ChronoUnit.Minutes, ttlDuration)
+      .timeToLive(ttlUnit, Number(ttlDuration))
       .verifiableCredentialType("ToyCredential")
       .verifiableCredentialContext([
         VC_CONTEXT.DI_CONTEXT,
@@ -102,7 +101,10 @@ export class IssueCredentialLambda implements LambdaInterface {
     };
   }
 }
-
+const getJwtTlUnit = async () =>
+  await configService.getParameter(`/${process.env.AWS_STACK_NAME}/JwtTtlUnit`);
+const getMaxJwtTl = async () =>
+  await configService.getParameter(`/${process.env.AWS_STACK_NAME}/MaxJwtTtl`);
 const handlerClass = new IssueCredentialLambda(auditService);
 export const lambdaHandler: Handler = middy(
   handlerClass.handler.bind(handlerClass)
