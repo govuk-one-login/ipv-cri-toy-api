@@ -253,17 +253,6 @@ Resources:
               Principal: "*"
               Resource:
                 - "execute-api:/*"
-            - Action: "execute-api:Invoke"
-              Effect: Deny
-              Principal: "*"
-              Resource:
-                - "execute-api:/*"
-              Condition:
-                StringNotEquals:
-                  aws:SourceVpce: !If
-                    - IsDevEnvironment
-                    - vpce-082cab7c78139eb54
-                    - !ImportValue cri-vpc-ExecuteApiGatewayEndpointId
 
   DevOnlyToyApi:
     Type: AWS::Serverless::Api
