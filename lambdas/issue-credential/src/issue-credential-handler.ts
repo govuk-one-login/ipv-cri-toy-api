@@ -29,6 +29,7 @@ import { SessionItem } from "../../types/session-item";
 import getSessionByIdMiddleware from "../../middlewares/session/get-session-by-id-middleware";
 import { SessionService } from "../../services/session-service";
 import { getTimeUnitValue } from "../../common/utils/time-units";
+import { PersonIdentity } from "../../types/person-identity";
 const TOY_CREDENTIAL_ISSUER = "toy_credential_issuer";
 const dynamoDbClient = createClient(AwsClientType.DYNAMO) as DynamoDBDocument;
 const ssmClient = createClient(AwsClientType.SSM) as SSMClient;
@@ -54,6 +55,23 @@ export class IssueCredentialLambda implements LambdaInterface {
     const toyBody = event.body as unknown as ToyItem;
     const sessionItem = event.body as unknown as SessionItem;
 
+    const subject = {
+      name: [
+        {
+          nameParts: [
+            {
+              type: "GivenName",
+              value: toyBody.toy.split("-")[0],
+            },
+            {
+              type: "FamilyName",
+              value: toyBody.toy.split("-")[1],
+            },
+          ],
+        },
+      ],
+    };
+
     const vcClaimSet = await builder
       .subject(toyBody.toy)
       .timeToLive(ttlUnit, Number(ttlDuration))
@@ -62,30 +80,19 @@ export class IssueCredentialLambda implements LambdaInterface {
         VC_CONTEXT.DI_CONTEXT,
         VC_CONTEXT.W3_BASE_CONTEXT,
       ])
-      .verifiableCredentialSubject({
-        name: [
-          {
-            nameParts: [
-              {
-                type: "GivenName",
-                value: toyBody.toy.split("-")[0],
-              },
-              {
-                type: "FamilyName",
-                value: toyBody.toy.split("-")[1],
-              },
-            ],
-          },
-        ],
-      } as Subject)
+      .verifiableCredentialSubject(subject as Subject)
       .build();
 
     await this.auditService.sendAuditEvent(
       AuditEventType.VC_ISSUED,
-      this.auditService.createAuditEventContext(sessionItem, {
-        toy: toyBody.toy,
-        iss: vcClaimSet.iss,
-      })
+      this.auditService.createAuditEventContext(
+        sessionItem,
+        {
+          toy: toyBody.toy,
+          iss: vcClaimSet.iss,
+        },
+        subject as PersonIdentity
+      )
     );
 
     await this.auditService.sendAuditEvent(
