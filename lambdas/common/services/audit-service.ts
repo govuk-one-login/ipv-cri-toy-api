@@ -7,6 +7,7 @@ import {
   AuditEventUser,
 } from "../../types/audit-event";
 import { CriAuditConfig } from "../../types/cri-audit-config";
+import { PersonIdentity } from "../../types/person-identity";
 import { SessionItem } from "../../types/session-item";
 
 export class AuditService {
@@ -90,9 +91,10 @@ export class AuditService {
 
   public createAuditEventContext(
     sessionItem: SessionItem,
-    extensions?: Record<string, string>
+    extensions?: Record<string, unknown>,
+    personIdentity?: PersonIdentity
   ): AuditEventContext {
-    const context = {
+    let context = {
       sessionItem: {
         sessionId: sessionItem.sessionId,
         subject: sessionItem.subject,
@@ -100,11 +102,17 @@ export class AuditService {
         clientSessionId: sessionItem.clientSessionId,
       },
       clientIpAddress: sessionItem.clientIpAddress,
-    };
+    } as AuditEventContext;
     if (extensions) {
-      return {
+      context = {
         ...context,
         extensions: extensions,
+      };
+    }
+    if (personIdentity) {
+      context = {
+        ...context,
+        personIdentity: personIdentity,
       };
     }
     return context;

@@ -222,8 +222,29 @@ describe("issue-credential-handler.ts", () => {
       expect(spy).toHaveBeenCalledWith(AuditEventType.VC_ISSUED, {
         ...expectedAuditEventContext,
         extensions: {
+          evidence: [
+            {
+              ci: [],
+            },
+          ],
           toy: "marble-race",
           iss: "https://review-toy.dev.account.gov.uk",
+        },
+        personIdentity: {
+          name: [
+            {
+              nameParts: [
+                {
+                  type: "GivenName",
+                  value: "marble",
+                },
+                {
+                  type: "FamilyName",
+                  value: "race",
+                },
+              ],
+            },
+          ],
         },
       });
     });
