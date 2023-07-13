@@ -91,7 +91,7 @@ export class AuditService {
 
   public createAuditEventContext(
     sessionItem: SessionItem,
-    extensions?: Record<string, string>,
+    extensions?: Record<string, unknown>,
     personIdentity?: PersonIdentity
   ): AuditEventContext {
     let context = {

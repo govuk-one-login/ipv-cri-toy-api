@@ -80,6 +80,11 @@ export class IssueCredentialLambda implements LambdaInterface {
         VC_CONTEXT.DI_CONTEXT,
         VC_CONTEXT.W3_BASE_CONTEXT,
       ])
+      .verifiableCredentialEvidence([
+        {
+          ci: [],
+        },
+      ])
       .verifiableCredentialSubject(subject as Subject)
       .build();
 
@@ -88,6 +93,7 @@ export class IssueCredentialLambda implements LambdaInterface {
       this.auditService.createAuditEventContext(
         sessionItem,
         {
+          evidence: vcClaimSet.vc.evidence,
           toy: toyBody.toy,
           iss: vcClaimSet.iss,
         },
