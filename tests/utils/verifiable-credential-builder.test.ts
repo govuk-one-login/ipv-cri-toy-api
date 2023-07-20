@@ -1,6 +1,9 @@
 import { ParameterType, SSMClient } from "@aws-sdk/client-ssm";
 import { VerifiableCredentialBuilder } from "../../lambdas/verifiable-credential/verifiable-credential-builder";
-import { TimeUnit } from "../../lambdas/common/utils/time-units";
+import {
+  TimeUnit,
+  getTimeUnitValue,
+} from "../../lambdas/common/utils/time-units";
 jest.mock("@aws-sdk/client-ssm", () => ({
   __esModule: true,
   ...jest.requireActual("@aws-sdk/client-ssm"),
@@ -62,6 +65,16 @@ describe("verifiable-credential-builder.ts", () => {
       );
     });
 
+    it.each(["DAYS", "HOURS", "MINUTES", "SECONDS"])(
+      "should be set to supplied value '%s'",
+      (ttlUnit) => {
+        builder.timeToLive(getTimeUnitValue(ttlUnit), 30);
+
+        expect(builder).toEqual(
+          expect.objectContaining({ ttl: 30, ttlUnit: builder["ttlUnit"] })
+        );
+      }
+    );
     it("should throw an error for an invalid unit", () => {
       expect(() =>
         builder.timeToLive("invalid" as unknown as TimeUnit, 30)

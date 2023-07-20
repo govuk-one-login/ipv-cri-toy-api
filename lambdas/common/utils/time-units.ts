@@ -6,7 +6,7 @@ export enum TimeUnit {
 }
 export function getTimeUnitValue(value?: string): TimeUnit {
   const unitKey = Object.keys(TimeUnit).find(
-    (key) => TimeUnit[key as keyof typeof TimeUnit] === value
+    (key) => TimeUnit[key as keyof typeof TimeUnit] === value?.toLowerCase()
   );
   if (unitKey) {
     return TimeUnit[unitKey as keyof typeof TimeUnit];
