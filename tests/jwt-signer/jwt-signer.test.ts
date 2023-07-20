@@ -1,5 +1,6 @@
 import {
   KMSClient,
+  MessageType,
   SignCommand,
   SigningAlgorithmSpec,
 } from "@aws-sdk/client-kms";
@@ -38,8 +39,8 @@ describe("JwtSigner", () => {
   });
   afterEach(() => jest.clearAllMocks());
 
-  describe("signs payload using with KMS KeyId", () => {
-    it("should create signed jwt", async () => {
+  describe("signs payload", () => {
+    it("should create signed jwt using with KMS KeyId", async () => {
       const mockedGetSigningKmsKeyId = jest.fn(() => "test-key-id");
       const jwtSigner = new JwtSigner(
         mockedKMSClient.prototype,
@@ -79,16 +80,15 @@ describe("JwtSigner", () => {
       expect(mockedSignCommand).toHaveBeenCalledWith({
         KeyId: expectedKid,
         Message: "mocked-digest",
+        MessageType: MessageType.DIGEST,
         SigningAlgorithm: SigningAlgorithmSpec.ECDSA_SHA_256,
       });
-      expect(mockUpdate).toHaveBeenCalledWith(
-        `${expectedJwtHeader}.${expectedJwtPayload}`
-      );
+      expect(mockUpdate).toHaveBeenCalledWith(expect.any(Buffer));
       expect(mockDigest).toHaveBeenCalledTimes(1);
       expect(signedJwt).toBe(expectedJwt);
     });
   });
-  describe("does not sign payload using with KMS KeyId", () => {
+  describe("does not sign payload", () => {
     it("should error during create createSignedJwt when KeyId not found", () => {
       const mockedGetSigningKmsKeyId = jest.fn(() => "");
       const jwtSigner = new JwtSigner(
@@ -97,7 +97,7 @@ describe("JwtSigner", () => {
       );
       expect(
         async () => await jwtSigner.createSignedJwt(claimsSet)
-      ).rejects.toThrow("Signing Kms KeyId not found");
+      ).rejects.toThrow("Signing Kms KeyId is missing");
     });
     it("should error when signature is missing or invalid signature", () => {
       const mockedGetSigningKmsKeyId = jest.fn(() => "test-key-id");
@@ -117,7 +117,9 @@ describe("JwtSigner", () => {
         .mockResolvedValueOnce(invalidResponse);
       expect(
         async () => await jwtSigner.createSignedJwt(claimsSet)
-      ).rejects.toThrow("Invalid KMS signature");
+      ).rejects.toThrow(
+        "KMS signing error: Error: KMS response does not contain a valid Signature."
+      );
     });
     it("should error when KMS signing failed", async () => {
       const mockedGetSigningKmsKeyId = jest.fn(() => "test-key-id");
@@ -140,26 +142,48 @@ describe("JwtSigner", () => {
         "Failed to sign JWT with KMS"
       );
     });
-    it("throws an error for missing or invalid KMS signature", async () => {
-      const mockedGetSigningKmsKeyId = jest.fn(() => "test-key-id");
-      const invalidResponse = { Signature: null };
-      jest
-        .spyOn(mockedKMSClient.prototype, "send")
-        .mockResolvedValueOnce(invalidResponse);
+    it("should throw an error for an unknown error during signing with KMS", async () => {
+      const mockKMSClient = new KMSClient({});
+      const mockSignCommand = jest.fn().mockReturnValue({
+        Signature: new Uint8Array(),
+      });
       const mockUpdate = jest.fn().mockReturnThis();
+      const dummyClaimsSet = { sub: "dummy-subject", exp: 1699999999 };
       const mockDigest = jest.fn().mockReturnValueOnce("mocked-digest");
+
       mockedCreateHash.mockReturnValueOnce({
         update: mockUpdate,
         digest: mockDigest,
       });
-      const jwtSigner = new JwtSigner(
-        mockedKMSClient.prototype,
-        mockedGetSigningKmsKeyId
-      );
-      const claimsSet = { name: "John Doe" };
+      mockKMSClient.send = mockSignCommand;
+      mockSignCommand.mockRejectedValueOnce({ Signature: "invalid-response" });
 
-      await expect(jwtSigner.createSignedJwt(claimsSet)).rejects.toThrow(
-        "Invalid KMS signature"
+      const jwtSigner = new JwtSigner(mockKMSClient, () => "dummy-kid");
+
+      await expect(jwtSigner.createSignedJwt(dummyClaimsSet)).rejects.toThrow(
+        "An unknown error occurred while signing with KMS: [object Object]"
+      );
+    });
+    it("should throw an error if KMS response is not in JSON format", async () => {
+      const mockKMSClient = new KMSClient({});
+      const mockSignCommand = jest.fn().mockReturnValue({
+        Signature: new Uint8Array(),
+      });
+      const mockUpdate = jest.fn().mockReturnThis();
+      const dummyClaimsSet = { sub: "dummy-subject", exp: 1699999999 };
+      const mockDigest = jest.fn().mockReturnValueOnce("mocked-digest");
+
+      mockedCreateHash.mockReturnValueOnce({
+        update: mockUpdate,
+        digest: mockDigest,
+      });
+      mockKMSClient.send = mockSignCommand;
+      mockSignCommand.mockRejectedValueOnce(new SyntaxError("Unknown error"));
+
+      const jwtSigner = new JwtSigner(mockKMSClient, () => "dummy-kid");
+
+      await expect(jwtSigner.createSignedJwt(dummyClaimsSet)).rejects.toThrow(
+        "KMS response is not in JSON format. SyntaxError: Unknown error"
       );
     });
   });
