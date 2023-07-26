@@ -149,6 +149,63 @@ paths:
         passthroughBehavior: "when_no_match"
         type: "aws_proxy"
 
+  /favourite-step-function:
+    post:
+      summary: "IP address of the client."
+      parameters:
+        - $ref: "#/components/parameters/SessionHeader"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Favourite"
+            examples:
+              jigsaw-puzzle:
+                summary: "Example body to receive a HTTP 200 response"
+                value:
+                  toy: "jigsaw-puzzle"
+              tennis-bat:
+                summary: "Example body to receive a HTTP 400 response"
+                value:
+                  toy: "tennis-bat"
+              football:
+                summary: "Example body to receive a HTTP 500 response"
+                value:
+                  toy: "football"
+        required: true
+      responses:
+        "404":
+          description: "404 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "200":
+          description: "200 response"
+      x-amazon-apigateway-request-validator: "Validate both"
+      x-amazon-apigateway-integration:
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_templates"
+        type: "aws"
+        credentials: arn:aws:iam::700803526010:role/SarahTestApiStepFunctionRole
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:states:action/StartExecution
+        responses:
+          default:
+            statusCode: "200"
+        requestTemplates:
+          application/json: |
+            {
+              "input": "{\"toy\": \"$util.parseJson($input.json('$.toy'))\",\"sessionId\": \"$input.params('session-id')\"}",
+              "stateMachineArn": "arn:aws:states:eu-west-2:700803526010:stateMachine:ToyFavouriteStepFunction"
+            }
+
 components:
   parameters:
     SessionHeader:
