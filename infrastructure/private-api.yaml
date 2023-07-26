@@ -193,18 +193,20 @@ paths:
         httpMethod: "POST"
         passthroughBehavior: "when_no_templates"
         type: "aws"
-        credentials: arn:aws:iam::700803526010:role/SarahTestApiStepFunctionRole
+        credentials:
+          Fn::Sub: ${ExecuteStateMachineRole.Arn}
         uri:
           Fn::Sub: arn:aws:apigateway:${AWS::Region}:states:action/StartExecution
         responses:
           default:
             statusCode: "200"
         requestTemplates:
-          application/json: |
-            {
-              "input": "{\"toy\": \"$util.parseJson($input.json('$.toy'))\",\"sessionId\": \"$input.params('session-id')\"}",
-              "stateMachineArn": "arn:aws:states:eu-west-2:700803526010:stateMachine:ToyFavouriteStepFunction"
-            }
+          application/json:
+            Fn::Sub: |-
+              {
+                "input": "{\"toy\": \"$util.parseJson($input.json('$.toy'))\",\"sessionId\": \"$input.params('session-id')\"}",
+                "stateMachineArn": "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${AWS::StackName}-favourite-state-machine"
+              }
 
 components:
   parameters:

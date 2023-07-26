@@ -1,0 +1,24 @@
+{
+  "Comment": "Executes the FavouriteFunction lambda to store a favourite toy",
+  "StartAt": "API Gateway Invoke",
+  "States": {
+    "API Gateway Invoke": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::apigateway:invoke",
+      "Parameters": {
+        "ApiEndpoint": "${PrivateApiId}.execute-api.eu-west-2.amazonaws.com",
+        "Method": "POST",
+        "Headers": {
+          "session-id.$": "States.Array($.sessionId)"
+        },
+        "Stage": "dev",
+        "Path": "/favourite",
+        "RequestBody": {
+          "toy.$": "$.toy"
+        },
+        "AuthType": "IAM_ROLE"
+      },
+      "End": true
+    }
+  }
+}

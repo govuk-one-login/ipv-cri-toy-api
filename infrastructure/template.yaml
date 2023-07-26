@@ -333,6 +333,89 @@ Resources:
       FilterPattern: ""
       LogGroupName: !Ref PrivateToyApiAccessLogGroup
 
+  FavouriteStateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "${AWS::StackName}-favourite-state-machine-log-group"
+      RetentionInDays: 30
+
+  FavouriteStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: ./favourite-state-machine.asl.json
+      DefinitionSubstitutions:
+        PrivateApiId:
+          !If [IsNotDevEnvironment, !Ref PrivateToyApi, !Ref DevOnlyToyApi]
+      Role: !GetAtt FavouriteStateMachineRole.Arn
+      Name: !Sub "${AWS::StackName}-favourite-state-machine"
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt FavouriteStateMachineLogGroup.Arn
+        IncludeExecutionData: true
+        Level: ALL
+
+  FavouriteStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: Role to allow step function to perform actions
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - states.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: AllowFavouriteLambdaInvoke
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource: !GetAtt FavouriteFunction.Arn
+        - PolicyName: AllowLoggin
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogDelivery
+                  - logs:GetLogDelivery
+                  - logs:UpdateLogDelivery
+                  - logs:DeleteLogDelivery
+                  - logs:ListLogDeliveries
+                  - logs:PutResourcePolicy
+                  - logs:DescribeResourcePolicies
+                  - logs:DescribeLogGroups
+                Resource: "*"
+
+  ExecuteStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: Role to allow API gateway to execute step function
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: AllowFavouriteLambdaInvoke
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "states:StartExecution"
+                Resource: "*"
+
   IssueCredentialFunction:
     Type: AWS::Serverless::Function
     Properties:
