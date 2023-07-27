@@ -346,7 +346,6 @@ Resources:
       DefinitionSubstitutions:
         PrivateApiId:
           !If [IsNotDevEnvironment, !Ref PrivateToyApi, !Ref DevOnlyToyApi]
-      Role: !GetAtt FavouriteStateMachineRole.Arn
       Name: !Sub "${AWS::StackName}-favourite-state-machine"
       Logging:
         Destinations:
@@ -354,20 +353,6 @@ Resources:
               LogGroupArn: !GetAtt FavouriteStateMachineLogGroup.Arn
         IncludeExecutionData: true
         Level: ALL
-
-  FavouriteStateMachineRole:
-    Type: AWS::IAM::Role
-    Properties:
-      Description: Role to allow step function to perform actions
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - states.amazonaws.com
-            Action:
-              - "sts:AssumeRole"
       Policies:
         - PolicyName: AllowFavouriteLambdaInvoke
           PolicyDocument:
@@ -377,7 +362,7 @@ Resources:
                 Action:
                   - "lambda:InvokeFunction"
                 Resource: !GetAtt FavouriteFunction.Arn
-        - PolicyName: AllowLoggin
+        - PolicyName: AllowLogging
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -415,6 +400,12 @@ Resources:
                 Action:
                   - "states:StartExecution"
                 Resource: "*"
+      PermissionsBoundary:
+        !If [
+          UsePermissionsBoundary,
+          !Ref PermissionsBoundary,
+          !Ref AWS::NoValue,
+        ]
 
   IssueCredentialFunction:
     Type: AWS::Serverless::Function
