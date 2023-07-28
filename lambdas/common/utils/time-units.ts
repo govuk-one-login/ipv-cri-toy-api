@@ -18,6 +18,10 @@ export class TimeUnit {
         return 1000 * 60 * 60;
       case TimeUnit.Unit.Days:
         return 1000 * 60 * 60 * 24;
+      case TimeUnit.Unit.Months:
+        return 1000 * 60 * 60 * 24 * 30;
+      case TimeUnit.Unit.Years:
+        return 1000 * 60 * 60 * 24 * 365;
       default:
         throw new Error(`Unexpected time-to-live unit encountered: ${unit}`);
     }
