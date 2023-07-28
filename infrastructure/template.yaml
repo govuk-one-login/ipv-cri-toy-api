@@ -377,7 +377,7 @@ Resources:
                 Action:
                   - "lambda:InvokeFunction"
                 Resource: !GetAtt FavouriteFunction.Arn
-        - PolicyName: AllowLoggin
+        - PolicyName: AllowLogging
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -392,6 +392,12 @@ Resources:
                   - logs:DescribeResourcePolicies
                   - logs:DescribeLogGroups
                 Resource: "*"
+      PermissionsBoundary:
+        !If [
+          UsePermissionsBoundary,
+          !Ref PermissionsBoundary,
+          !Ref AWS::NoValue,
+        ]
 
   ExecuteStateMachineRole:
     Type: AWS::IAM::Role
@@ -415,6 +421,12 @@ Resources:
                 Action:
                   - "states:StartExecution"
                 Resource: "*"
+      PermissionsBoundary:
+        !If [
+          UsePermissionsBoundary,
+          !Ref PermissionsBoundary,
+          !Ref AWS::NoValue,
+        ]
 
   IssueCredentialFunction:
     Type: AWS::Serverless::Function
