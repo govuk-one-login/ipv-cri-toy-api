@@ -7,10 +7,9 @@ export enum ReleaseFlagKeys {
   CONTAINS_UNIQUE_ID = "release-flags/vc-contains-unique-id",
   EXPIRY_REMOVED = "/release-flags/vc-expiry-removed",
 }
-const PARAMETER_PREFIX = process.env.AWS_STACK_NAME || "";
 
+const PARAMETER_PREFIX = process.env.AWS_STACK_NAME || "";
 export class VerifiableCredentialBuilder {
-  static TimeUnit = TimeUnit;
   constructor(
     private readonly ssmClient: SSMClient,
     private readonly credential: VerifiableCredential = {
@@ -23,7 +22,7 @@ export class VerifiableCredentialBuilder {
       },
     },
     private ttl: number = 0,
-    private ttlUnit?: TimeUnit
+    private ttlUnit?: string
   ) {}
 
   subject(subject: string): VerifiableCredentialBuilder {
@@ -40,15 +39,13 @@ export class VerifiableCredentialBuilder {
     return this;
   }
 
-  timeToLive(unit: TimeUnit, ttl?: number): VerifiableCredentialBuilder {
-    if (!unit || !Object.values(TimeUnit).includes(unit)) {
-      throw new Error("ttlUnit must be valid");
-    }
+  timeToLive(unit?: string, ttl?: number): VerifiableCredentialBuilder {
+    const unitTime = TimeUnit.getValue(unit);
     if (!ttl || ttl < 1) {
       throw new Error("ttl must be greater than zero");
     }
 
-    this.ttlUnit = unit;
+    this.ttlUnit = unitTime;
     this.ttl = ttl;
     return this;
   }
@@ -119,24 +116,9 @@ export class VerifiableCredentialBuilder {
       ))
     ) {
       this.credential.exp =
-        Date.now() + this.ttl * this.getUnitMultiplier(this.ttlUnit);
+        Date.now() + this.ttl * TimeUnit.convert(this.ttlUnit);
     }
     return this.credential;
-  }
-
-  private getUnitMultiplier(unit?: string): number {
-    switch (unit) {
-      case TimeUnit.Seconds:
-        return 1000;
-      case TimeUnit.Minutes:
-        return 1000 * 60;
-      case TimeUnit.Hours:
-        return 1000 * 60 * 60;
-      case TimeUnit.Days:
-        return 1000 * 60 * 60 * 24;
-      default:
-        throw new Error(`Unexpected time-to-live unit encountered: ${unit}`);
-    }
   }
 
   private async isReleaseFlag(

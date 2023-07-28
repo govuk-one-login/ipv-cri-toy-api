@@ -1,15 +1,37 @@
-export enum TimeUnit {
-  Seconds = "seconds",
-  Minutes = "minutes",
-  Hours = "hours",
-  Days = "days",
-}
-export function getTimeUnitValue(value?: string): TimeUnit {
-  const unitKey = Object.keys(TimeUnit).find(
-    (key) => TimeUnit[key as keyof typeof TimeUnit] === value?.toLowerCase()
-  );
-  if (unitKey) {
-    return TimeUnit[unitKey as keyof typeof TimeUnit];
-  }
-  throw new Error(`Invalid value: ${value}`);
+export class TimeUnit {
+  public static readonly Unit = {
+    Seconds: "seconds",
+    Minutes: "minutes",
+    Hours: "hours",
+    Days: "days",
+    Months: "months",
+    Years: "years",
+  };
+
+  public static convert = (unit?: string): number => {
+    switch (unit) {
+      case TimeUnit.Unit.Seconds:
+        return 1000;
+      case TimeUnit.Unit.Minutes:
+        return 1000 * 60;
+      case TimeUnit.Unit.Hours:
+        return 1000 * 60 * 60;
+      case TimeUnit.Unit.Days:
+        return 1000 * 60 * 60 * 24;
+      default:
+        throw new Error(`Unexpected time-to-live unit encountered: ${unit}`);
+    }
+  };
+
+  public static getValue = (value?: string) => {
+    const unitKey = Object.keys(TimeUnit.Unit).find(
+      (key) =>
+        TimeUnit.Unit[key as keyof typeof TimeUnit.Unit] ===
+        value?.toLowerCase()
+    );
+    if (unitKey) {
+      return TimeUnit.Unit[unitKey as keyof typeof TimeUnit.Unit];
+    }
+    throw new Error(`ttlUnit must be valid: ${value}`);
+  };
 }
