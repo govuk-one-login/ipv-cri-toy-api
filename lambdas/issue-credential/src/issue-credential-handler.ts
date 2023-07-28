@@ -27,7 +27,6 @@ import { AuditEventType } from "../../types/audit-event";
 import { SQSClient } from "@aws-sdk/client-sqs";
 import { SessionItem } from "../../types/session-item";
 import { SessionService } from "../../services/session-service";
-import { getTimeUnitValue } from "../../common/utils/time-units";
 import { PersonIdentity } from "../../types/person-identity";
 import getSessionByIdMiddleware from "../../middlewares/session/get-session-by-id-middleware";
 import { JwtSigner } from "../../jwt-signer/jwt-signer";
@@ -57,7 +56,6 @@ export class IssueCredentialLambda implements LambdaInterface {
     logger.info("Toy issue-credential lambda triggered");
 
     const ttlDuration = (await getMaxJwtTl()).Value;
-    const ttlUnit = getTimeUnitValue((await getJwtTlUnit()).Value);
     const toyBody = event.body as unknown as ToyItem;
     const sessionItem = event.body as unknown as SessionItem;
 
@@ -80,7 +78,7 @@ export class IssueCredentialLambda implements LambdaInterface {
 
     const vcClaimSet = await builder
       .subject(toyBody.toy)
-      .timeToLive(ttlUnit, Number(ttlDuration))
+      .timeToLive((await getJwtTlUnit()).Value, Number(ttlDuration))
       .verifiableCredentialType("ToyCredential")
       .verifiableCredentialContext([
         VC_CONTEXT.DI_CONTEXT,

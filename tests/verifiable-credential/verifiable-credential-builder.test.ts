@@ -1,9 +1,6 @@
 import { ParameterType, SSMClient } from "@aws-sdk/client-ssm";
 import { VerifiableCredentialBuilder } from "../../lambdas/verifiable-credential/verifiable-credential-builder";
-import {
-  TimeUnit,
-  getTimeUnitValue,
-} from "../../lambdas/common/utils/time-units";
+import { TimeUnit } from "../../lambdas/common/utils/time-units";
 jest.mock("@aws-sdk/client-ssm", () => ({
   __esModule: true,
   ...jest.requireActual("@aws-sdk/client-ssm"),
@@ -53,10 +50,12 @@ describe("verifiable-credential-builder.ts", () => {
   });
   describe("timeToLive", () => {
     it.each([
-      [TimeUnit.Days],
-      [TimeUnit.Hours],
-      [TimeUnit.Minutes],
-      [TimeUnit.Seconds],
+      [TimeUnit.Unit.Years],
+      [TimeUnit.Unit.Months],
+      [TimeUnit.Unit.Days],
+      [TimeUnit.Unit.Hours],
+      [TimeUnit.Unit.Minutes],
+      [TimeUnit.Unit.Seconds],
     ])("should be set to supplied value '%s'", (ttlUnit) => {
       builder.timeToLive(ttlUnit, 30);
 
@@ -65,10 +64,10 @@ describe("verifiable-credential-builder.ts", () => {
       );
     });
 
-    it.each(["DAYS", "HOURS", "MINUTES", "SECONDS"])(
+    it.each(["YEARS", "MONTHS", "DAYS", "HOURS", "MINUTES", "SECONDS"])(
       "should be set to supplied value '%s'",
       (ttlUnit) => {
-        builder.timeToLive(getTimeUnitValue(ttlUnit), 30);
+        builder.timeToLive(ttlUnit, 30);
 
         expect(builder).toEqual(
           expect.objectContaining({ ttl: 30, ttlUnit: builder["ttlUnit"] })
@@ -76,9 +75,9 @@ describe("verifiable-credential-builder.ts", () => {
       }
     );
     it("should throw an error for an invalid unit", () => {
-      expect(() =>
-        builder.timeToLive("invalid" as unknown as TimeUnit, 30)
-      ).toThrow("ttlUnit must be valid");
+      expect(() => builder.timeToLive("invalid", 30)).toThrow(
+        `ttlUnit must be valid: invalid`
+      );
     });
   });
   describe("verifiableCredentialType", () => {
@@ -200,7 +199,7 @@ describe("verifiable-credential-builder.ts", () => {
         await expect(
           builder
             .subject("Kenneth Decerqueira")
-            .timeToLive(TimeUnit.Minutes, ttlDuration)
+            .timeToLive(TimeUnit.Unit.Minutes, ttlDuration)
             .verifiableCredentialType("ToyCredential")
             .verifiableCredentialSubject({
               somesubject: {
@@ -234,7 +233,7 @@ describe("verifiable-credential-builder.ts", () => {
           builder
             .subject("Kenneth Decerqueira")
             .issuer("an-issuer-for-toy")
-            .timeToLive(TimeUnit.Minutes, ttlDuration)
+            .timeToLive(TimeUnit.Unit.Minutes, ttlDuration)
             .verifiableCredentialType("ToyCredential")
             .verifiableCredentialSubject("Kenneth Decerqueira")
             .build()
@@ -284,7 +283,7 @@ describe("verifiable-credential-builder.ts", () => {
           builder
             .subject("Kenneth Decerqueira")
             .issuer("an-issuer-for-toy")
-            .timeToLive(TimeUnit.Minutes, ttlDuration)
+            .timeToLive(TimeUnit.Unit.Minutes, ttlDuration)
             .verifiableCredentialType("ToyCredential")
             .verifiableCredentialSubject({
               someothersubject: {
@@ -331,7 +330,7 @@ describe("verifiable-credential-builder.ts", () => {
         await expect(
           builder
             .subject("Kenneth Decerqueira")
-            .timeToLive(TimeUnit.Minutes, ttlDuration)
+            .timeToLive(TimeUnit.Unit.Minutes, ttlDuration)
             .verifiableCredentialType("ToyCredential")
             .verifiableCredentialSubject({
               somesubject: {
@@ -366,7 +365,7 @@ describe("verifiable-credential-builder.ts", () => {
           builder
             .subject("Kenneth Decerqueira")
             .issuer("an-issuer-for-toy")
-            .timeToLive(TimeUnit.Minutes, ttlDuration)
+            .timeToLive(TimeUnit.Unit.Minutes, ttlDuration)
             .verifiableCredentialType("ToyCredential")
             .verifiableCredentialSubject("Kenneth Decerqueira")
             .build()
