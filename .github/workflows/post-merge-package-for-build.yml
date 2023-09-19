@@ -4,6 +4,8 @@ on:
     branches:
       - main
 
+  workflow_dispatch: # deploy manually
+
 jobs:
   deploy:
     name: Package for build
