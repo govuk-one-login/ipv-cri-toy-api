@@ -149,12 +149,6 @@ Mappings:
       integration: MONTHS
       production: MONTHS
 
-  ToyApiUrls:
-    Environment:
-      dev: "https://36mwex8dg3.execute-api.eu-west-2.amazonaws.com/dev"
-      build: "https://36mwex8dg3.execute-api.eu-west-2.amazonaws.com/dev" # to update when the stub is deployed to build
-      staging: "https://36mwex8dg3.execute-api.eu-west-2.amazonaws.com/dev" # to update when the stub is deployed to staging
-
 Resources:
   PublicToyApi:
     Type: AWS::Serverless::Api
@@ -513,7 +507,7 @@ Resources:
         Variables:
           POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-favourite"
           SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
-          TOY_API_URL: !FindInMap [ToyApiUrls, Environment, !Ref Environment]
+          TOY_API_URL: !ImportValue ImposterStubApiUrl
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
