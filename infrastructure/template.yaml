@@ -41,6 +41,10 @@ Parameters:
     Description: "The name of the stack containing the common CRI lambdas/infra"
     Type: String
     Default: "common-cri-api"
+  ThirdPartyStubsStackName:
+    Description: "The name of the third party stubs stack"
+    Type: String
+    Default: "third-party-stubs"
 
 Conditions:
   EnforceCodeSigning: !Equals
@@ -507,7 +511,8 @@ Resources:
         Variables:
           POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-favourite"
           SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
-          TOY_API_URL: !ImportValue ImposterStubApiUrl
+          TOY_API_URL:
+            Fn::ImportValue: !Sub "${ThirdPartyStubsStackName}-ImposterStubApiUrl"
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
