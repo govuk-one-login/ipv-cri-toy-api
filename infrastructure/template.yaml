@@ -546,7 +546,6 @@ Resources:
 
   PublicApiUsagePlan:
     Type: AWS::ApiGateway::UsagePlan
-    Condition: IsNotDevEnvironment
     DependsOn:
       - PublicToyApiStage
     Properties:
@@ -560,24 +559,7 @@ Resources:
         BurstLimit: 100 # requests the API can handle concurrently
         RateLimit: 50 # allowed requests per second
 
-  PrivateApiUsagePlan:
-    Type: AWS::ApiGateway::UsagePlan
-    Condition: IsNotDevEnvironment
-    DependsOn:
-      - PrivateToyApiStage
-    Properties:
-      ApiStages:
-        - ApiId: !Ref PrivateToyApi
-          Stage: !Ref Environment
-      Quota:
-        Limit: 500000
-        Period: DAY
-      Throttle:
-        BurstLimit: 100 # requests the API can handle concurrently
-        RateLimit: 50 # allowed requests per second
-
   LinkUsagePlanApiKey1:
-    Condition: IsNotDevEnvironment
     Type: AWS::ApiGateway::UsagePlanKey
     Properties:
       KeyId: !ImportValue core-infrastructure-ApiKey1
@@ -585,7 +567,6 @@ Resources:
       UsagePlanId: !Ref PublicApiUsagePlan
 
   LinkUsagePlanApiKey2:
-    Condition: IsNotDevEnvironment
     Type: AWS::ApiGateway::UsagePlanKey
     Properties:
       KeyId: !ImportValue core-infrastructure-ApiKey2
