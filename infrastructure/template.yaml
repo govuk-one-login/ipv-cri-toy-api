@@ -93,14 +93,10 @@ Globals:
           !ImportValue cri-vpc-ProtectedSubnetIdA,
           !ImportValue cri-vpc-ProtectedSubnetIdB,
         ]
-    PermissionsBoundary: !If
-      - UsePermissionsBoundary
-      - !Ref PermissionsBoundary
-      - !Ref AWS::NoValue
-    CodeSigningConfigArn: !If
-      - EnforceCodeSigning
-      - !Ref CodeSigningConfigArn
-      - !Ref AWS::NoValue
+    PermissionsBoundary:
+      !If [UsePermissionsBoundary, !Ref PermissionsBoundary, !Ref AWS::NoValue]
+    CodeSigningConfigArn:
+      !If [EnforceCodeSigning, !Ref CodeSigningConfigArn, !Ref AWS::NoValue]
     Timeout: 30 # seconds
     Runtime: nodejs18.x
     AutoPublishAlias: live
@@ -200,8 +196,8 @@ Resources:
 
   PrivateToyApi:
     Type: AWS::Serverless::Api
-    Condition: IsNotDevEnvironment
     Properties:
+      Name: !Sub "${AWS::StackName}-private"
       Description: Private Toy CRI API
       MethodSettings:
         - LoggingLevel: INFO
@@ -228,7 +224,6 @@ Resources:
           "responseLength":"$context.responseLength"
           }
       TracingEnabled: true
-      Name: !Sub "toy-cri-private-${AWS::StackName}"
       StageName: !Ref Environment
       DefinitionBody:
         openapi: "3.0.1" # workaround to get `sam validate` to work
@@ -251,50 +246,6 @@ Resources:
               Resource:
                 - "execute-api:/*"
 
-  DevOnlyToyApi:
-    Type: AWS::Serverless::Api
-    Condition: IsDevEnvironment
-    Properties:
-      Description: Private Dev Toy CRI API
-      MethodSettings:
-        - LoggingLevel: INFO
-          ResourcePath: "/*"
-          HttpMethod: "*"
-          DataTraceEnabled: true
-          MetricsEnabled: true
-          ThrottlingRateLimit: 5
-          ThrottlingBurstLimit: 10
-      AccessLogSetting:
-        DestinationArn: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${DevOnlyToyApiAccessLogGroup}"
-        Format: >-
-          {
-          "requestId":"$context.requestId",
-          "ip":"$context.identity.sourceIp",
-          "requestTime":"$context.requestTime",
-          "httpMethod":"$context.httpMethod",
-          "path":"$context.path",
-          "routeKey":"$context.routeKey",
-          "status":"$context.status",
-          "protocol":"$context.protocol",
-          "responseLatency":"$context.responseLatency",
-          "responseLength":"$context.responseLength"
-          }
-      TracingEnabled: true
-      Name: !Sub "toy-cri-private-${AWS::StackName}"
-      StageName: !Ref Environment
-      DefinitionBody:
-        openapi: "3.0.1" # workaround to get `sam validate` to work
-        paths: # workaround to get `sam validate` to work
-          /never-created:
-            options: {} # workaround to get `sam validate` to work
-        Fn::Transform:
-          Name: AWS::Include
-          Parameters:
-            Location: "./private-api.yaml"
-      OpenApiVersion: 3.0.1
-      EndpointConfiguration:
-        Type: REGIONAL
-
   PublicToyApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -311,17 +262,9 @@ Resources:
 
   PrivateToyApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
-    Condition: IsNotDevEnvironment
     Properties:
-      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${PrivateToyApi}-private-AccessLogs
-      RetentionInDays: 365
-
-  DevOnlyToyApiAccessLogGroup:
-    Type: AWS::Logs::LogGroup
-    Condition: IsDevEnvironment
-    Properties:
-      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${DevOnlyToyApi}-private-AccessLogs
-      RetentionInDays: 30
+      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-private-${PrivateToyApi}-access-logs
+      RetentionInDays: !If [IsNotDevEnvironment, 365, 30]
 
   PrivateToyApiAccessLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
@@ -342,8 +285,7 @@ Resources:
     Properties:
       DefinitionUri: ./favourite-state-machine.asl.json
       DefinitionSubstitutions:
-        PrivateApiId:
-          !If [IsNotDevEnvironment, !Ref PrivateToyApi, !Ref DevOnlyToyApi]
+        PrivateApiId: !Ref PrivateToyApi
       Role: !GetAtt FavouriteStateMachineRole.Arn
       Name: !Sub "${AWS::StackName}-favourite-state-machine"
       Logging:
@@ -862,7 +804,7 @@ Outputs:
 
   PrivateToyApiGatewayId:
     Description: "API GatewayID of the private Toy CRI API"
-    Value: !If [IsNotDevEnvironment, !Ref PrivateToyApi, !Ref DevOnlyToyApi]
+    Value: !Ref PrivateToyApi
     Export:
       Name: !Sub ${AWS::StackName}-PrivateToyApiGatewayId
 
