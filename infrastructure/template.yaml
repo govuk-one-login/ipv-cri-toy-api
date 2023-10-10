@@ -613,6 +613,14 @@ Resources:
       Value: !Sub "${PublicToyApi}"
       Description: "API GatewayID of the public Toy CRI API"
 
+  PrivateToyApiGatewayIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/PrivateToyApiGatewayId"
+      Type: String
+      Value: !Sub "${PrivateToyApi}"
+      Description: "API GatewayID of the private Toy CRI API"
+
   PublicToyApiBaseUrlParameter:
     Type: AWS::SSM::Parameter
     Properties:
