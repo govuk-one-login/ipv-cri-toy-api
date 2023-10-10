@@ -1,0 +1,21 @@
+name: Code quality
+
+on:
+  push:
+    branches: [main]
+
+concurrency: code-quality
+permissions: {}
+
+jobs:
+  coverage:
+    name: Coverage
+    uses: ./.github/workflows/unit-tests.yml
+
+  sonarcloud:
+    name: Scan
+    needs: coverage
+    uses: ./.github/workflows/sonarcloud.yml
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+      sonar-token: ${{ secrets.SONAR_TOKEN }}
