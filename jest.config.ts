@@ -1,29 +1,19 @@
-/*
- * For a detailed explanation regarding each configuration property and type check, visit:
- * https://jestjs.io/docs/configuration
- */
+import { Config } from "jest";
 
 export default {
-  transform: {
-    "^.+\\.ts?$": "ts-jest",
-  },
+  preset: "ts-jest",
   clearMocks: true,
-  collectCoverage: true,
-  collectCoverageFrom: ["lambdas/**/*.{js,ts}", "!**/tests/**"],
-  coverageDirectory: "coverage",
-  coverageProvider: "v8",
-  coveragePathIgnorePatterns: ["config.ts", "node_modules/"],
+  modulePaths: ["<rootDir>/src"],
+  setupFiles: ["<rootDir>/setEnvVars.js"],
+  globalSetup: "<rootDir>/dotenv/dotenv-test.js",
+  collectCoverageFrom: ["<rootDir>/lambdas/**/*"],
+  testMatch: ["<rootDir>/tests/**/*.test.ts"],
   coverageThreshold: {
     global: {
-      statements: 0,
-      branches: 0,
-      functions: 0,
-      lines: 0,
+      statements: 87,
+      branches: 80,
+      functions: 80,
+      lines: 87,
     },
   },
-  testMatch: ["**/tests/**/*.test.ts"],
-  preset: "ts-jest",
-  testEnvironment: "node",
-  globalSetup: "<rootDir>/dotenv/dotenv-test.js",
-  setupFiles: ["<rootDir>/setEnvVars.js"],
-};
+} satisfies Config;
