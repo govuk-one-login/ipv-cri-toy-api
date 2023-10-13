@@ -65,7 +65,7 @@ describe("issue-credential-handler.ts", () => {
   beforeEach(() => {
     process.env = {
       ...process.env,
-      AWS_STACK_NAME: "di-ipv-cri-toy-api",
+      AWS_STACK_NAME: "ipv-cri-toy-api",
       COMMON_PARAMETER_NAME_PREFIX: "common-cri-api",
     };
     mockMap.set("test-client-id", "test-config-value");

@@ -1,8 +1,6 @@
 {
-  "name": "di-ipv-cri-toy-api",
-  "version": "1.0.0",
+  "name": "ipv-cri-toy-api",
   "description": "API for the toy credential issuer",
-  "main": "index.js",
   "scripts": {
     "lint:prettier": "prettier --check lambdas",
     "lint:prettier-fix": "npx prettier --write .",
@@ -13,16 +11,6 @@
     "test": "npm run compile && npm run unit",
     "test:browser": "cucumber-js --config tests/browser/cucumber.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/alphagov/di-ipv-cri-toy-api.git"
-  },
-  "author": "alphagov",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/alphagov/di-ipv-cri-toy-api/issues"
-  },
-  "homepage": "https://github.com/alphagov/di-ipv-cri-toy-api#readme",
   "devDependencies": {
     "@cucumber/cucumber": "8.6.0",
     "@types/aws-lambda": "^8.10.114",
