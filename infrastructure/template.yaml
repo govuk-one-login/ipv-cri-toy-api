@@ -16,11 +16,12 @@ Parameters:
     Type: "String"
     AllowedValues:
       - "dev"
+      - "localdev"
       - "build"
       - "staging"
       - "integration"
       - "production"
-    ConstraintDescription: must be dev, build, staging, integration or production
+    ConstraintDescription: must be dev, localdev, build, staging, integration or production
   PermissionsBoundary:
     Description: "The ARN of the permissions boundary to apply when creating IAM roles"
     Type: String
@@ -64,14 +65,16 @@ Conditions:
     - !Equals [!Ref Environment, staging]
     - !Equals [!Ref Environment, integration]
     - !Equals [!Ref Environment, production]
-  IsProdEnvironment: !Equals
-    - !Ref Environment
-    - production
-  IsDevEnvironment: !Equals
-    - !Ref Environment
-    - dev
-  IsNotDevEnvironment: !Not
-    - Condition: IsDevEnvironment
+  IsProdEnvironment: !Equals [!Ref Environment, production]
+  IsDevEnvironment: !Equals [!Ref Environment, dev]
+  IsLocalDevEnvironment: !Equals [!Ref Environment, localdev]
+  IsNotLocalDevEnvironment: !Not [!Condition IsLocalDevEnvironment]
+  IsNotDevLikeEnvironment:
+    !Or [
+      !Condition IsNotLocalDevEnvironment,
+      !Not [!Condition IsDevEnvironment],
+    ]
+
   UsePermissionsBoundary:
     Fn::Not:
       - Fn::Equals:
@@ -118,6 +121,7 @@ Mappings:
   VcContainsUniqueIdMapping:
     Environment:
       dev: "true"
+      localdev: "true"
       build: "true"
       staging: "true"
       integration: "false"
@@ -126,6 +130,7 @@ Mappings:
   MemorySizeMapping:
     Environment:
       dev: 512
+      localdev: 512
       build: 1024
       staging: 1024
       integration: 1024
@@ -135,6 +140,7 @@ Mappings:
   MaxJwtTtlMapping:
     Environment:
       dev: 2
+      localdev: 2
       build: 2
       staging: 6
       integration: 6
@@ -144,6 +150,7 @@ Mappings:
   JwtTtlUnitMapping:
     Environment:
       dev: HOURS
+      localdev: HOURS
       build: HOURS
       staging: MONTHS
       integration: MONTHS
@@ -196,6 +203,7 @@ Resources:
 
   PrivateToyApi:
     Type: AWS::Serverless::Api
+    Condition: IsNotLocalDevEnvironment
     Properties:
       Name: !Sub "${AWS::StackName}-private"
       Description: Private Toy CRI API
@@ -246,6 +254,57 @@ Resources:
               Resource:
                 - "execute-api:/*"
 
+  DevOnlyToyApi:
+    Type: AWS::Serverless::Api
+    Condition: IsLocalDevEnvironment
+    Properties:
+      Description: Private Dev Toy CRI API
+      MethodSettings:
+        - LoggingLevel: INFO
+          ResourcePath: "/*"
+          HttpMethod: "*"
+          DataTraceEnabled: true
+          MetricsEnabled: true
+          ThrottlingRateLimit: 5
+          ThrottlingBurstLimit: 10
+      AccessLogSetting:
+        DestinationArn: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${DevOnlyToyApiAccessLogGroup}"
+        Format: >-
+          {
+          "requestId":"$context.requestId",
+          "ip":"$context.identity.sourceIp",
+          "requestTime":"$context.requestTime",
+          "httpMethod":"$context.httpMethod",
+          "path":"$context.path",
+          "routeKey":"$context.routeKey",
+          "status":"$context.status",
+          "protocol":"$context.protocol",
+          "responseLatency":"$context.responseLatency",
+          "responseLength":"$context.responseLength"
+          }
+      TracingEnabled: true
+      Name: !Sub "toy-cri-private-${AWS::StackName}"
+      StageName: !Ref Environment
+      DefinitionBody:
+        openapi: "3.0.1" # workaround to get `sam validate` to work
+        paths: # workaround to get `sam validate` to work
+          /never-created:
+            options: {} # workaround to get `sam validate` to work
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: "./private-api.yaml"
+      OpenApiVersion: 3.0.1
+      EndpointConfiguration:
+        Type: REGIONAL
+
+  DevOnlyToyApiAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: IsLocalDevEnvironment
+    Properties:
+      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${DevOnlyToyApi}-private-AccessLogs
+      RetentionInDays: 3
+
   PublicToyApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -254,7 +313,7 @@ Resources:
 
   PublicToyApiAccessLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
-    Condition: IsNotDevEnvironment
+    Condition: IsNotDevLikeEnvironment
     Properties:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
       FilterPattern: ""
@@ -262,17 +321,23 @@ Resources:
 
   PrivateToyApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
+    Condition: IsNotLocalDevEnvironment
     Properties:
       LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-private-${PrivateToyApi}-access-logs
-      RetentionInDays: !If [IsNotDevEnvironment, 365, 30]
+      RetentionInDays: !If [IsDevEnvironment, 30, 365]
 
   PrivateToyApiAccessLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
-    Condition: IsNotDevEnvironment
+    Condition: IsNotDevLikeEnvironment
     Properties:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
       FilterPattern: ""
-      LogGroupName: !Ref PrivateToyApiAccessLogGroup
+      LogGroupName:
+        !If [
+          IsLocalDevEnvironment,
+          !Ref DevOnlyToyApiAccessLogGroup,
+          !Ref PrivateToyApiAccessLogGroup,
+        ]
 
   FavouriteStateMachineLogGroup:
     Type: AWS::Logs::LogGroup
@@ -285,7 +350,8 @@ Resources:
     Properties:
       DefinitionUri: ./favourite-state-machine.asl.json
       DefinitionSubstitutions:
-        PrivateApiId: !Ref PrivateToyApi
+        PrivateApiId:
+          !If [IsLocalDevEnvironment, !Ref DevOnlyToyApi, !Ref PrivateToyApi]
       Role: !GetAtt FavouriteStateMachineRole.Arn
       Name: !Sub "${AWS::StackName}-favourite-state-machine"
       Logging:
@@ -438,7 +504,7 @@ Resources:
 
   IssueCredentialFunctionLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
-    Condition: IsNotDevEnvironment
+    Condition: IsNotDevLikeEnvironment
     Properties:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
       FilterPattern: ""
@@ -516,7 +582,7 @@ Resources:
 
   FavouriteFunctionLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
-    Condition: IsNotDevEnvironment
+    Condition: IsNotDevLikeEnvironment
     Properties:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
       FilterPattern: ""
@@ -545,6 +611,7 @@ Resources:
         Enabled: true
 
   PublicApiUsagePlan:
+    Condition: IsNotLocalDevEnvironment
     Type: AWS::ApiGateway::UsagePlan
     DependsOn:
       - PublicToyApiStage
@@ -560,6 +627,7 @@ Resources:
         RateLimit: 50 # allowed requests per second
 
   LinkUsagePlanApiKey1:
+    Condition: IsNotLocalDevEnvironment
     Type: AWS::ApiGateway::UsagePlanKey
     Properties:
       KeyId: !ImportValue core-infrastructure-ApiKey1
@@ -567,6 +635,7 @@ Resources:
       UsagePlanId: !Ref PublicApiUsagePlan
 
   LinkUsagePlanApiKey2:
+    Condition: IsNotLocalDevEnvironment
     Type: AWS::ApiGateway::UsagePlanKey
     Properties:
       KeyId: !ImportValue core-infrastructure-ApiKey2
@@ -785,7 +854,7 @@ Outputs:
 
   PrivateToyApiGatewayId:
     Description: "API GatewayID of the private Toy CRI API"
-    Value: !Ref PrivateToyApi
+    Value: !If [IsLocalDevEnvironment, !Ref DevOnlyToyApi, !Ref PrivateToyApi]
     Export:
       Name: !Sub ${AWS::StackName}-PrivateToyApiGatewayId
 
