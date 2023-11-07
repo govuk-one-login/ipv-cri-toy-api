@@ -161,7 +161,6 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       Description: Public Toy CRI API
-      AlwaysDeploy: true
       MethodSettings:
         - LoggingLevel: INFO
           ResourcePath: "/*"
