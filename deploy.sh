@@ -2,7 +2,7 @@
 set -e
 
 stack_name="$1"
-common_stack_name="${2:-common-cri-api}"
+common_stack_name="${2:-common-cri-api-local}"
 secret_prefix="${3:-toy-cri-api}"
 
 if [ -z "$stack_name" ]
@@ -21,7 +21,7 @@ sam deploy --stack-name "$stack_name" \
    --capabilities CAPABILITY_IAM \
    --parameter-overrides \
    CodeSigningEnabled=false \
-   Environment=dev \
+   Environment=localdev \
    AuditEventNamePrefix=/common-cri-parameters/AuditEventNamePrefix \
    CriIdentifier=/common-cri-parameters/CriIdentifier \
    CommonStackName="$common_stack_name" \
