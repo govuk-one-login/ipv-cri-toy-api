@@ -442,8 +442,8 @@ Resources:
         Sourcemap: true
         External: ["@aws-sdk/*"]
     Properties:
-      Handler: issue-credential-handler.lambdaHandler
       CodeUri: ../
+      Handler: lambdas/issue-credential/src/issue-credential-handler.lambdaHandler
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-issuecredential"
@@ -513,8 +513,8 @@ Resources:
         Sourcemap: true
         External: ["@aws-sdk/*"]
     Properties:
-      Handler: favourite-handler.lambdaHandler
       CodeUri: ../
+      Handler: lambdas/favourite/src/favourite-handler.lambdaHandler
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-favourite"
