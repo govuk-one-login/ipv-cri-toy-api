@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/alphagov/di-ipv-cri-toy-api#readme",
   "devDependencies": {
-    "@cucumber/cucumber": "8.6.0",
+    "@cucumber/cucumber": "10.0.1",
     "@types/aws-lambda": "^8.10.114",
     "@types/jest": "^29.5.0",
     "@typescript-eslint/eslint-plugin": "5.10.2",
