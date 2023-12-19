@@ -126,7 +126,7 @@ Globals:
     Layers:
       - !Sub
         - "{{resolve:secretsmanager:${SecretArn}:SecretString:NODEJS_LAYER}}"
-        - SecretArn: !FindInMap [ Dynatrace, SecretArn, !Ref Environment ]
+        - SecretArn: !FindInMap [Dynatrace, SecretArn, !Ref Environment]
 
 Mappings:
   VcContainsUniqueIdMapping:
