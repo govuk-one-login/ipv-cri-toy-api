@@ -149,6 +149,7 @@ Mappings:
   MemorySizeMapping:
     Environment:
       dev: 1024
+      localdev: 1024
       build: 3072
       staging: 2048
       integration: 2048
