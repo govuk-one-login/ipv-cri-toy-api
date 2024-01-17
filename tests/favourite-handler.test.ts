@@ -230,8 +230,7 @@ describe("favourite-handler.ts", () => {
   });
 
   it("should send the correct toy api response to txma", async () => {
-    const mockFetch = getMockFetch(404);
-    global.fetch = mockFetch;
+    global.fetch = getMockFetch(404);
     const spy = jest.spyOn(auditService.prototype, "sendAuditEvent");
     const expectedAuditEventContext: AuditEventContext = {
       sessionItem: {
