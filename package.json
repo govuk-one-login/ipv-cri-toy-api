@@ -7,8 +7,9 @@
     "lint": "npm run lint:eslint && npm run lint:prettier",
     "lint:fix": "npm run lint:eslint -- --fix && npm run lint:prettier -- --write",
     "compile": "tsc",
-    "unit": "jest --config=jest.config.ts",
-    "test": "npm run compile && npm run unit",
+    "unit": "jest --silent",
+    "test": "npm run unit",
+    "test:coverage": "npm run unit -- --coverage",
     "test:browser": "cucumber-js --config tests/browser/cucumber.js"
   },
   "devDependencies": {
