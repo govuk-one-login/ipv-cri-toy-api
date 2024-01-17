@@ -10,7 +10,8 @@
     "unit": "jest --silent",
     "test": "npm run unit",
     "test:coverage": "npm run unit -- --coverage",
-    "test:browser": "cucumber-js --config tests/browser/cucumber.js"
+    "test:browser": "cucumber-js --config tests/browser/cucumber.js",
+    "deploy": "./deploy.sh"
   },
   "dependencies": {
     "@aws-lambda-powertools/commons": "^1.8.0",
