@@ -1,0 +1,29 @@
+name: Check PR
+
+on: pull_request
+permissions: {}
+
+jobs:
+  pre-commit:
+    name: pre-commit
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pre-commit-${{ github.head_ref || github.ref_name }}
+      cancel-in-progress: true
+    steps:
+      - name: Run pre-commit
+        uses: govuk-one-login/github-actions/code-quality/run-pre-commit@6023e6872503eec9c057061eba23bddf7f445d9f
+        with:
+          install-dependencies: true
+          all-files: true
+
+  unit-tests:
+    name: Run tests
+    uses: ./.github/workflows/run-unit-tests.yml
+
+  deploy:
+    name: Preview
+    uses: ./.github/workflows/deploy-branch.yml
+    permissions:
+      id-token: write
+      contents: read

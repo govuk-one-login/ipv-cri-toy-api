@@ -1,10 +1,17 @@
 name: Package for Build
-on:
-  push:
-    branches:
-      - main
 
+on:
   workflow_dispatch: # deploy manually
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-build
+  cancel-in-progress: true
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   deploy:
@@ -41,8 +48,8 @@ jobs:
           sam build -t infrastructure/template.yaml -b out/
 
       - name: Deploy SAM app
-        uses: alphagov/di-devplatform-upload-action@v3.2
+        uses: govuk-one-login/devplatform-upload-action@v3.3
         with:
-          artifact-bucket-name: "${{ secrets.BUILD_ARTIFACT_SOURCE_BUCKET_NAME }}"
-          signing-profile-name: "${{ secrets.BUILD_SIGNING_PROFILE_NAME }}"
+          artifact-bucket-name: ${{ secrets.BUILD_ARTIFACT_SOURCE_BUCKET_NAME }}
+          signing-profile-name: ${{ secrets.BUILD_SIGNING_PROFILE_NAME }}
           working-directory: ./out
