@@ -15,6 +15,6 @@
     "outDir": "./build/",
     "noImplicitAny": true
   },
-  "exclude": ["node_modules"],
-  "include": ["./lambdas/", "./tests/"]
+  "exclude": ["node_modules", "build", "coverage"],
+  "include": ["lambdas", "tests"]
 }

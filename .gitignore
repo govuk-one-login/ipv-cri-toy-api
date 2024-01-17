@@ -23,9 +23,8 @@ build
 /integration-tests/bin/
 
 node_modules
-node_modules/*
-
 coverage
-coverage/*
+dotenv
+dist
 
 .env

@@ -9,8 +9,8 @@ export type Subject = {
         {
           type: "FamilyName";
           value: string;
-        }
+        },
       ];
-    }
+    },
   ];
 };
