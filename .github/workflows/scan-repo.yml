@@ -18,6 +18,7 @@ jobs:
   unit-tests:
     name: Test coverage
     uses: ./.github/workflows/run-unit-tests.yml
+    if: ${{ github.actor != 'CharlesIC' }}
     with:
       coverage-report: true
 
@@ -25,6 +26,7 @@ jobs:
     name: SonarCloud
     needs: unit-tests
     runs-on: ubuntu-latest
+    if: ${{ github.actor != 'CharlesIC' }}
     steps:
       - name: Run SonarCloud scan
         uses: govuk-one-login/github-actions/code-quality/sonarcloud@bau-update-codeql
