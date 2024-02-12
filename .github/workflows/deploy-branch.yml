@@ -53,6 +53,7 @@ jobs:
           cache-key: cri-toy-api
           s3-prefix: preview
           pull-repository: true
+          disable-rollback: false
           delete-failed-stack: true
           tags: |
             cri:component=ipv-cri-toy-api
