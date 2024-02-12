@@ -322,13 +322,13 @@ Resources:
     Type: AWS::Logs::LogGroup
     Condition: IsLocalDevEnvironment
     Properties:
-      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${DevOnlyToyApi}-private-AccessLogs
+      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}/${DevOnlyToyApi}-private-AccessLogs
       RetentionInDays: 3
 
   PublicToyApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${PublicToyApi}-public-AccessLogs
+      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}/${PublicToyApi}-public-AccessLogs
       RetentionInDays: 365
 
   PublicToyApiAccessLogGroupSubscriptionFilterCSLS:
@@ -343,7 +343,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Condition: IsNotLocalDevEnvironment
     Properties:
-      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-private-${PrivateToyApi}-access-logs
+      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}/${PrivateToyApi}-private-access-logs
       RetentionInDays: !If [IsDevEnvironment, 30, 365]
 
   PrivateToyApiAccessLogGroupSubscriptionFilterCSLS:
@@ -362,7 +362,7 @@ Resources:
   FavouriteStateMachineLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "${AWS::StackName}-favourite-state-machine-log-group"
+      LogGroupName: !Sub /aws/states/${AWS::StackName}/favourite-state-machine
       RetentionInDays: 30
 
   FavouriteStateMachine:
