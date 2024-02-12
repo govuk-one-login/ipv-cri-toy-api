@@ -373,7 +373,6 @@ Resources:
         PrivateApiId:
           !If [IsLocalDevEnvironment, !Ref DevOnlyToyApi, !Ref PrivateToyApi]
       Role: !GetAtt FavouriteStateMachineRole.Arn
-      Name: !Sub "${AWS::StackName}-favourite-state-machine"
       Logging:
         Destinations:
           - CloudWatchLogsLogGroup:
