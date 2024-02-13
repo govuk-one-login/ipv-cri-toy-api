@@ -15,15 +15,15 @@ concurrency:
 permissions: read-all
 
 jobs:
-  #  unit-tests:
-  #    name: Test coverage
-  #    uses: ./.github/workflows/run-unit-tests.yml
-  #    with:
-  #      coverage-report: true
+  unit-tests:
+    name: Test coverage
+    uses: ./.github/workflows/run-unit-tests.yml
+    with:
+      coverage-report: true
 
   sonarcloud:
     name: SonarCloud
-    #    needs: unit-tests
+    needs: unit-tests
     runs-on: ubuntu-latest
     steps:
       - name: Run SonarCloud scan
