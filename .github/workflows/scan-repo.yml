@@ -30,6 +30,7 @@ jobs:
         uses: govuk-one-login/github-actions/code-quality/sonarcloud@bau-update-codeql
         with:
           coverage-artifact: coverage
+          coverage-run-id: ${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           sonar-token: ${{ secrets.SONAR_TOKEN }}
 
