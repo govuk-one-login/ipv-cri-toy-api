@@ -205,7 +205,7 @@ paths:
             Fn::Sub: |-
               {
                 "input": "{\"toy\": \"$util.parseJson($input.json('$.toy'))\",\"sessionId\": \"$input.params('session-id')\"}",
-                "stateMachineArn": "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${AWS::StackName}-favourite-state-machine"
+                "stateMachineArn": "${FavouriteStateMachine.Arn}"
               }
 
 components:
