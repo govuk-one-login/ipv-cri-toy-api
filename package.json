@@ -29,7 +29,7 @@
     "ecdsa-sig-formatter": "^1.0.11",
     "esbuild": "^0.17.18",
     "jose": "^4.15.5",
-    "npm": "^9.8.1",
+    "npm": "^10.5.2",
     "upgrade": "^1.1.0"
   },
   "devDependencies": {
