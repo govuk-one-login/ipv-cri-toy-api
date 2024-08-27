@@ -177,6 +177,31 @@ Mappings:
       production: MONTHS
 
 Resources:
+  ImposterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: imposter.lambdaHandler
+      CodeUri: ../
+      Environment:
+        Variables:
+          POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-favourite"
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: "node18"
+        Sourcemap: true #
+        EntryPoints:
+          - lambdas/imposter/src/imposter.ts
+        External:
+          - "@aws-sdk/*"
+
+  ImposterFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ImposterFunction}"
+      RetentionInDays: 30
+
   PublicToyApi:
     Type: AWS::Serverless::Api
     Properties:
